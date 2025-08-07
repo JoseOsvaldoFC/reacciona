@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,50 +9,64 @@ import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { HeartPulse, Users, Leaf, Star, Trophy, Award, Target, Shield, ChevronDown, Play } from "lucide-react"
 
+// 1. Definimos un "tipo" para el Módulo, para que coincida con nuestro backend
+interface Module {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  // Añadimos un mapeo para los íconos
+  icon: React.ElementType;
+  categoryColor: string;
+}
+
+// 2. CORREGIMOS el mapeo para que coincida con los datos del backend ("Médica", "Social", etc.)
+const categoryDetails: { [key: string]: { icon: React.ElementType, color: string, plural: string } } = {
+  "Médica": { icon: HeartPulse, color: "bg-red-100 text-red-700", plural: "Médicas" },
+  "Social": { icon: Users, color: "bg-blue-100 text-blue-700", plural: "Sociales" },
+  "Ambiental": { icon: Leaf, color: "bg-green-100 text-green-700", plural: "Ambientales" },
+};
+
+
+
 export default function StudentDashboard() {
   const [selectedCategory, setSelectedCategory] = useState("Todos")
+  // 2. Creamos un estado para guardar los módulos que vienen de la API
+  const [modules, setModules] = useState<Module[]>([])
 
+  // 3. useEffect se ejecuta una sola vez cuando el componente se monta
+  useEffect(() => {
+    // Hacemos la llamada a nuestra API de Spring Boot
+    fetch('http://localhost:8080/api/modulos')
+    .then(response => response.json())
+      .then(data => {
+        const formattedModules = data.map((mod: any) => ({
+          id: mod.id,
+          title: mod.titulo,
+          description: mod.descripcion,
+          category: mod.tipo, // Usamos el valor del backend directamente (ej. "Médica")
+          icon: categoryDetails[mod.tipo]?.icon || Shield,
+          categoryColor: categoryDetails[mod.tipo]?.color || "bg-gray-100 text-gray-700"
+        }));
+        setModules(formattedModules);
+      })
+      .catch(error => console.error("Error al cargar los módulos:", error));
+  }, []); // El array vacío asegura que solo se ejecute al inicio
+
+  // 3. GENERAMOS las categorías para los botones a partir del mapeo
+  // Así aseguramos que siempre estén sincronizados.
   const categories = [
-    { name: "Todos", color: "bg-gray-100 text-gray-700" },
-    { name: "Médicas", color: "bg-red-100 text-red-700" },
-    { name: "Sociales", color: "bg-blue-100 text-blue-700" },
-    { name: "Ambientales", color: "bg-green-100 text-green-700" },
-  ]
+    { name: "Todos" },
+    ...Object.entries(categoryDetails).map(([key, value]) => ({ name: value.plural, original: key }))
+  ];
 
-  const modules = [
-    {
-      id: 1,
-      title: "Acoso Escolar: ¿Qué hacer?",
-      description: "Aprende a identificar y actuar ante situaciones de bullying",
-      category: "Sociales",
-      icon: Users,
-      categoryColor: "bg-blue-100 text-blue-700",
-    },
-    {
-      id: 2,
-      title: "Primeros Auxilios Básicos",
-      description: "Técnicas esenciales para emergencias médicas",
-      category: "Médicas",
-      icon: HeartPulse,
-      categoryColor: "bg-red-100 text-red-700",
-    },
-    {
-      id: 3,
-      title: "Reciclaje y Medio Ambiente",
-      description: "Cómo cuidar nuestro planeta desde casa",
-      category: "Ambientales",
-      icon: Leaf,
-      categoryColor: "bg-green-100 text-green-700",
-    },
-    {
-      id: 4,
-      title: "Seguridad en Internet",
-      description: "Navega de forma segura en el mundo digital",
-      category: "Sociales",
-      icon: Shield,
-      categoryColor: "bg-blue-100 text-blue-700",
-    },
-  ]
+    // 4. CORREGIMOS la lógica de filtrado
+  const filteredModules = selectedCategory === "Todos" 
+    ? modules 
+    : modules.filter((module) => {
+        const categoryInfo = categories.find(c => c.name === selectedCategory);
+        return module.category === categoryInfo?.original;
+      });
 
   const achievements = [
     { icon: Trophy, name: "Primera Lección" },
@@ -62,9 +76,9 @@ export default function StudentDashboard() {
     { icon: HeartPulse, name: "Héroe Médico" },
   ]
 
-  const filteredModules =
-    selectedCategory === "Todos" ? modules : modules.filter((module) => module.category === selectedCategory)
 
+  // El JSX de retorno queda casi igual, solo que ahora `modules` y `filteredModules` 
+  // contendrán los datos de la API en lugar de los datos de prueba.
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -150,7 +164,7 @@ export default function StudentDashboard() {
             ))}
           </div>
 
-          {/* Module Cards Grid */}
+          {/* Module Cards Grid (ahora usa los datos de la API)*/}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredModules.map((module) => {
               const IconComponent = module.icon
