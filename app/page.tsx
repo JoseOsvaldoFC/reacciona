@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { HeartPulse, Users, Leaf, Star, Trophy, Award, Target, Shield, ChevronDown, Play } from "lucide-react"
 
-// 1. Definimos un "tipo" para el Módulo, para que coincida con nuestro backend
+// Definimos un "tipo" para el Módulo, para que coincida con nuestro backend
 interface Module {
   id: number;
   title: string;
@@ -20,7 +22,7 @@ interface Module {
   categoryColor: string;
 }
 
-// 2. CORREGIMOS el mapeo para que coincida con los datos del backend ("Médica", "Social", etc.)
+// Mapeo para que coincida con los datos del backend ("Médica", "Social", etc.)
 const categoryDetails: { [key: string]: { icon: React.ElementType, color: string, plural: string } } = {
   "Médica": { icon: HeartPulse, color: "bg-red-100 text-red-700", plural: "Médicas" },
   "Social": { icon: Users, color: "bg-blue-100 text-blue-700", plural: "Sociales" },
@@ -30,13 +32,20 @@ const categoryDetails: { [key: string]: { icon: React.ElementType, color: string
 
 
 export default function StudentDashboard() {
+
+  const { isAuthenticated, logout } = useAuth();
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState("Todos")
-  // 2. Creamos un estado para guardar los módulos que vienen de la API
+  // Creamos un estado para guardar los módulos que vienen de la API
   const [modules, setModules] = useState<Module[]>([])
 
-  // 3. useEffect se ejecuta una sola vez cuando el componente se monta
+  // useEffect se ejecuta una sola vez cuando el componente se monta
   useEffect(() => {
-    // Hacemos la llamada a nuestra API de Spring Boot
+    // Este efecto se encarga de la protección
+    if (!isAuthenticated){
+      router.push('/login') // Si no está autenticado, se va al login
+    } else{
+    // Si está autenticado, hacemos el fetch de los módulos
     fetch('http://localhost:8080/api/modulos')
     .then(response => response.json())
       .then(data => {
@@ -51,16 +60,22 @@ export default function StudentDashboard() {
         setModules(formattedModules);
       })
       .catch(error => console.error("Error al cargar los módulos:", error));
-  }, []); // El array vacío asegura que solo se ejecute al inicio
+    }
+  }, [isAuthenticated, router]); // Se ejecuta cada vez que cambia el estado de autenticación
 
-  // 3. GENERAMOS las categorías para los botones a partir del mapeo
+  // Si no esta autenticado no se renderiza nada
+  if (!isAuthenticated){
+    return null;
+  } 
+
+  // GENERAMOS las categorías para los botones a partir del mapeo
   // Así aseguramos que siempre estén sincronizados.
   const categories = [
     { name: "Todos" },
     ...Object.entries(categoryDetails).map(([key, value]) => ({ name: value.plural, original: key }))
   ];
 
-    // 4. CORREGIMOS la lógica de filtrado
+    // la lógica de filtrado
   const filteredModules = selectedCategory === "Todos" 
     ? modules 
     : modules.filter((module) => {
@@ -110,7 +125,7 @@ export default function StudentDashboard() {
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem>Mi Progreso</DropdownMenuItem>
               <DropdownMenuItem>Mi Perfil</DropdownMenuItem>
-              <DropdownMenuItem>Cerrar Sesión</DropdownMenuItem>
+              <DropdownMenuItem onSelect={logout}>Cerrar Sesión</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
