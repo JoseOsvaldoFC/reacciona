@@ -53,9 +53,9 @@ export default function StudentDashboard() {
           id: mod.id,
           title: mod.titulo,
           description: mod.descripcion,
-          category: mod.tipo, // Usamos el valor del backend directamente (ej. "Médica")
-          icon: categoryDetails[mod.tipo]?.icon || Shield,
-          categoryColor: categoryDetails[mod.tipo]?.color || "bg-gray-100 text-gray-700"
+          category: mod.tipoEmergencia, // Usamos el valor del backend directamente (ej. "Médica")
+          icon: categoryDetails[mod.tipoEmergencia]?.icon || Shield,
+          categoryColor: categoryDetails[mod.tipoEmergencia]?.color || "bg-gray-100 text-gray-700"
         }));
         setModules(formattedModules);
       })
