@@ -24,9 +24,9 @@ interface Module {
 
 // Mapeo para que coincida con los datos del backend ("Médica", "Social", etc.)
 const categoryDetails: { [key: string]: { icon: React.ElementType, color: string, plural: string } } = {
-  "Médica": { icon: HeartPulse, color: "bg-red-100 text-red-700", plural: "Médicas" },
-  "Social": { icon: Users, color: "bg-blue-100 text-blue-700", plural: "Sociales" },
-  "Ambiental": { icon: Leaf, color: "bg-green-100 text-green-700", plural: "Ambientales" },
+  "MEDICA": { icon: HeartPulse, color: "bg-red-100 text-red-700", plural: "Médicas" },
+  "SOCIAL": { icon: Users, color: "bg-blue-100 text-blue-700", plural: "Sociales" },
+  "AMBIENTAL": { icon: Leaf, color: "bg-green-100 text-green-700", plural: "Ambientales" },
 };
 
 
