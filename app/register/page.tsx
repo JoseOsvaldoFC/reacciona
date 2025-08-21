@@ -41,7 +41,6 @@ export default function RegisterPage() {
             });
 
             if (!response.ok){
-                // Manejar errores de la API, como "email ya registrado"
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Error al registrar el usuario.');
             }
