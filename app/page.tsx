@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { HeartPulse, Users, Leaf, Star, Trophy, Award, Target, Shield, ChevronDown, Play } from "lucide-react"
+import Link from 'next/link';
 
 // Definimos un "tipo" para el Módulo, para que coincida con nuestro backend
 interface Module {
@@ -17,7 +18,6 @@ interface Module {
   title: string;
   description: string;
   category: string;
-  // Añadimos un mapeo para los íconos
   icon: React.ElementType;
   categoryColor: string;
 }
@@ -33,41 +33,59 @@ const categoryDetails: { [key: string]: { icon: React.ElementType, color: string
 
 export default function StudentDashboard() {
 
-  const { isAuthenticated, logout } = useAuth();
+  const {  isAuthenticated, user, token, isLoading, logout} = useAuth();
   const router = useRouter();
+
   const [selectedCategory, setSelectedCategory] = useState("Todos")
   // Creamos un estado para guardar los módulos que vienen de la API
   const [modules, setModules] = useState<Module[]>([])
 
-  // useEffect se ejecuta una sola vez cuando el componente se monta
+  // useEffect para manejar la lógica de autenticación y carga de datos
   useEffect(() => {
-    // Este efecto se encarga de la protección
-    if (!isAuthenticated){
-      router.push('/login') // Si no está autenticado, se va al login
-    } else{
-    // Si está autenticado, hacemos el fetch de los módulos
-    fetch('http://localhost:8080/api/modulos')
-    .then(response => response.json())
-      .then(data => {
-        const formattedModules = data.map((mod: any) => ({
-          id: mod.id,
-          title: mod.titulo,
-          description: mod.descripcion,
-          category: mod.tipoEmergencia, // Usamos el valor del backend directamente (ej. "Médica")
-          icon: categoryDetails[mod.tipoEmergencia]?.icon || Shield,
-          categoryColor: categoryDetails[mod.tipoEmergencia]?.color || "bg-gray-100 text-gray-700"
-        }));
-        setModules(formattedModules);
+    // Si la carga inicial del contexto ha terminado y el usuario no está autenticado, lo redirigimos al login.
+    if (!isAuthenticated && token){
+      router.push('/login');
+      return; // Si no está autenticado, se va al login
+    } 
+    
+    // Si está autenticado, procedemos a cargar los módulos
+    if (isAuthenticated && token) {
+      fetch('http://localhost:8080/api/modulos',{
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       })
-      .catch(error => console.error("Error al cargar los módulos:", error));
-    }
-  }, [isAuthenticated, router]); // Se ejecuta cada vez que cambia el estado de autenticación
+      .then(response => {
+        if (response.status === 403) { // token invalido
+          logout(); // se cierra la sesión
+          return Promise.reject(new Error('Token inválido o expirado.'));
+        }
+        if (!response.ok) {
+          throw new Error('No se pudieron cargar los módulos.');
+        }
+        return response.json();
+      })
+        .then(data => {
+          const formattedModules = data.map((mod: any) => ({
+            id: mod.id,
+            title: mod.titulo,
+            description: mod.descripcion,
+            category: mod.tipoEmergencia, // Usamos el valor del backend directamente (ej. "Médica")
+            icon: categoryDetails[mod.tipoEmergencia]?.icon || Shield,
+            categoryColor: categoryDetails[mod.tipoEmergencia]?.color || "bg-gray-100 text-gray-700"
+          }));
+          setModules(formattedModules);
+        })
+        .catch(error => console.error("Error al cargar los módulos:", error));
+      }
+  }, [ isLoading, isAuthenticated, token, router]); // Se ejecuta cada vez que cambia el estado de autenticación
 
-  // Si no esta autenticado no se renderiza nada
-  if (!isAuthenticated){
-    return null;
-  } 
 
+  // Se muestra mientras el AuthContext está verificando el token y cargando los datos del usuario.
+  if (isLoading || !user) {
+    return <div className="flex h-screen items-center justify-center">Cargando...</div>;
+  }
+  
   // GENERAMOS las categorías para los botones a partir del mapeo
   // Así aseguramos que siempre estén sincronizados.
   const categories = [
@@ -111,12 +129,12 @@ export default function StudentDashboard() {
               <Button variant="ghost" className="flex items-center space-x-2 p-2">
                 <Avatar className="w-8 h-8">
                   <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                  <AvatarFallback className="bg-teal-100 text-teal-700">J</AvatarFallback>
+                  <AvatarFallback className="bg-teal-100 text-teal-700">{user.nombre.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="hidden sm:block text-left">
-                  <p className="text-sm font-medium text-gray-900">Hola, Jazmín</p>
+                  <p className="text-sm font-medium text-gray-900">Hola, {user.nombre}</p>
                   <p className="text-xs text-gray-500 flex items-center">
-                    Nivel 5 <Star className="w-3 h-3 ml-1 text-amber-500" /> • 1,250 Pts
+                    Nivel 5 <Star className="w-3 h-3 ml-1 text-amber-500" /> • {user.puntos} Pts
                   </p>
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-500" />
@@ -124,7 +142,9 @@ export default function StudentDashboard() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem>Mi Progreso</DropdownMenuItem>
+              <Link href="/profile" passHref>
               <DropdownMenuItem>Mi Perfil</DropdownMenuItem>
+              </Link>
               <DropdownMenuItem onSelect={logout}>Cerrar Sesión</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
