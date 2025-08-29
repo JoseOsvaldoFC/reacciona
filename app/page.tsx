@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { HeartPulse, Users, Leaf, Star, Trophy, Award, Target, Shield, ChevronDown, Play } from "lucide-react"
 import Link from 'next/link';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+
 
 // Definimos un "tipo" para el Módulo, para que coincida con nuestro backend
 interface Module {
@@ -20,7 +22,18 @@ interface Module {
   category: string;
   icon: React.ElementType;
   categoryColor: string;
+  nivelDificultad?: string;
+  tiempoEstimado?: number;
+  contenidos?: {
+    id: number;
+    titulo: string;
+    tipoContenido: string;
+    urlRecurso: string;
+    cuerpo: string;
+    orden: number;
+  }[];
 }
+
 
 // Mapeo para que coincida con los datos del backend ("Médica", "Social", etc.)
 const categoryDetails: { [key: string]: { icon: React.ElementType, color: string, plural: string } } = {
@@ -32,6 +45,9 @@ const categoryDetails: { [key: string]: { icon: React.ElementType, color: string
 
 
 export default function StudentDashboard() {
+
+  const [selectedModule, setSelectedModule] = useState<Module | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   const {  isAuthenticated, user, token, isLoading, logout} = useAuth();
   const router = useRouter();
@@ -65,15 +81,18 @@ export default function StudentDashboard() {
         }
         return response.json();
       })
-        .then(data => {
-          const formattedModules = data.map((mod: any) => ({
-            id: mod.id,
-            title: mod.titulo,
-            description: mod.descripcion,
-            category: mod.tipoEmergencia, // Usamos el valor del backend directamente (ej. "Médica")
-            icon: categoryDetails[mod.tipoEmergencia]?.icon || Shield,
-            categoryColor: categoryDetails[mod.tipoEmergencia]?.color || "bg-gray-100 text-gray-700"
-          }));
+      .then(data => {
+        const formattedModules = data.map((mod: any) => ({
+          id: mod.id,
+          title: mod.titulo,
+          description: mod.descripcion,
+          category: mod.tipoEmergencia,
+          icon: categoryDetails[mod.tipoEmergencia]?.icon || Shield,
+          categoryColor: categoryDetails[mod.tipoEmergencia]?.color || "bg-gray-100 text-gray-700",
+          nivelDificultad: mod.nivelDificultad,
+          tiempoEstimado: mod.tiempoEstimado,
+          contenidos: mod.contenidos
+        }));
           setModules(formattedModules);
         })
         .catch(error => console.error("Error al cargar los módulos:", error));
@@ -215,13 +234,45 @@ export default function StudentDashboard() {
                     <CardTitle className="text-base text-gray-900 leading-tight">{module.title}</CardTitle>
                     <CardDescription className="text-sm text-gray-600">{module.description}</CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-0">
+                  <CardContent className="pt-0 flex gap-2">
                     <Button
                       variant="ghost"
                       className="w-full text-teal-600 hover:text-teal-700 hover:bg-teal-50 p-0 h-auto font-medium"
                     >
                       Iniciar
                     </Button>
+                    <Dialog open={showDetails} onOpenChange={setShowDetails}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="ghost" // igual que el botón "Iniciar"
+                          className="w-full text-teal-600 hover:text-teal-700 hover:bg-teal-50 p-0 h-auto font-medium"
+                          onClick={() => { setSelectedModule(module); setShowDetails(true); }}
+                        >
+                          Ver Detalles
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>{selectedModule?.title}</DialogTitle>
+                          <DialogDescription>
+                            <p><strong>Categoría:</strong> {selectedModule?.category}</p>
+                            <p><strong>Descripción:</strong> {selectedModule?.description}</p>
+                            <p><strong>Dificultad:</strong> {selectedModule?.nivelDificultad}</p>
+                            <p><strong>Tiempo estimado:</strong> {selectedModule?.tiempoEstimado} min</p>
+                            <div className="mt-4">
+                              <strong>Contenidos:</strong>
+                              <ul className="list-disc ml-6">
+                                {selectedModule?.contenidos?.map((contenido) => (
+                                  <li key={contenido.id}>
+                                    {contenido.titulo}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </DialogDescription>
+                        </DialogHeader>
+                      </DialogContent>
+                    </Dialog>
                   </CardContent>
                 </Card>
               )
