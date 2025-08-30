@@ -241,25 +241,31 @@ export default function StudentDashboard() {
                     >
                       Iniciar
                     </Button>
-                    <Dialog open={showDetails} onOpenChange={setShowDetails}>
+                    <Dialog
+                      open={showDetails && selectedModule?.id === module.id}
+                      onOpenChange={(open) => {
+                        setShowDetails(open);
+                        if (!open) setSelectedModule(null);
+                      }}
+                    >
                       <DialogTrigger asChild>
                         <Button
-                          variant="ghost" // igual que el botón "Iniciar"
+                          variant="ghost"
                           className="w-full text-teal-600 hover:text-teal-700 hover:bg-teal-50 p-0 h-auto font-medium"
                           onClick={() => { setSelectedModule(module); setShowDetails(true); }}
                         >
                           Ver Detalles
                         </Button>
                       </DialogTrigger>
-                      <DialogContent>
+                      <DialogContent aria-describedby={undefined}>
                         <DialogHeader>
                           <DialogTitle>{selectedModule?.title}</DialogTitle>
-                          <DialogDescription>
-                            <p><strong>Categoría:</strong> {selectedModule?.category}</p>
-                            <p><strong>Descripción:</strong> {selectedModule?.description}</p>
-                            <p><strong>Dificultad:</strong> {selectedModule?.nivelDificultad}</p>
-                            <p><strong>Tiempo estimado:</strong> {selectedModule?.tiempoEstimado} min</p>
-                            <div className="mt-4">
+                          <div>
+                            <div><strong>Categoría:</strong> <span>{selectedModule?.category}</span></div>
+                            <div><strong>Descripción:</strong> <span>{selectedModule?.description}</span></div>
+                            <div><strong>Dificultad:</strong> <span>{selectedModule?.nivelDificultad}</span></div>
+                            <div><strong>Tiempo estimado:</strong> <span>{selectedModule?.tiempoEstimado} min</span></div>
+                            <div>
                               <strong>Contenidos:</strong>
                               <ul className="list-disc ml-6">
                                 {selectedModule?.contenidos?.map((contenido) => (
@@ -269,7 +275,7 @@ export default function StudentDashboard() {
                                 ))}
                               </ul>
                             </div>
-                          </DialogDescription>
+                          </div>
                         </DialogHeader>
                       </DialogContent>
                     </Dialog>
