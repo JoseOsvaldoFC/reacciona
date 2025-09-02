@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useEffect, useTransition } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from "sonner";
 
 export default function ProfilePage() {
-    const { user, token, isAuthenticated, isLoading, refetchUser } = useAuth();
+    const { user, token, isAuthenticated, isLoading, refetchUser, isAuthenticated, isLoading, refetchUser } = useAuth();
     const router = useRouter();
 
     // Estado para el modo de edición del perfil
@@ -84,50 +84,6 @@ export default function ProfilePage() {
         });
     };
     
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-        setMessage('');
-
-        // Validación simple del lado del cliente
-        if (!nombre || !email || !currentPassword || !newPassword || !confirmationPassword) {
-            setError('Todos los campos son obligatorios.');
-            return;
-        }
-
-        if (newPassword !== confirmationPassword) {
-            setError("Las nuevas contraseñas no coinciden.");
-            return;
-        }
-
-        try {
-            const response = await fetch('http://localhost:8080/api/auth/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    nombre,
-                    email,
-                    password: newPassword,
-                    puntos: 0 // valor inicial para un nuevo estudiante
-                }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                setError(errorData.message || 'Error al registrar el usuario.');
-                return;
-            }
-
-            setMessage('¡Registro exitoso! Ahora puedes iniciar sesión.');
-            // Opcionalmente, redirigir al login después de unos segundos
-            // setTimeout(() => { window.location.href = '/login'; }, 2000);
-        } catch (err: any) {
-            setError(err.message);
-        }
-    };
-
     if (isLoading || !user) return <div className="flex h-screen items-center justify-center">Cargando perfil...</div>;
 
     return (
