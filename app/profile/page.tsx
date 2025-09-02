@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useTransition, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from "sonner";
 
 export default function ProfilePage() {
-    const { user, token, isAuthenticated, isLoading, refetchUser, isAuthenticated, isLoading, refetchUser } = useAuth();
+    const { user, token, isAuthenticated, isLoading, refetchUser} = useAuth();
     const router = useRouter();
 
     // Estado para el modo de edición del perfil

@@ -16,7 +16,6 @@ export default function RegisterPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Validación simple del lado del cliente
         if (!nombre || !email || !password){
             toast.error('Todos los campos son obligatorios.');
             return;
@@ -30,15 +29,21 @@ export default function RegisterPage() {
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Error al registrar el usuario.');
+                    let errorMessage = 'Error al registrar el usuario';
+                    let bodyText = await response.text();
+                    try {
+                        const errorData = JSON.parse(bodyText);
+                        errorMessage = errorData.message || errorMessage;
+                    } catch {
+                        errorMessage = bodyText || errorMessage;
+                    }
+                    throw new Error(errorMessage);
                 }
-                
+
                 toast.success('¡Registro exitoso!', {
                     description: 'Ya puedes iniciar sesión con tu nueva cuenta.',
                 });
-                
-                // Limpiamos el formulario
+
                 setNombre('');
                 setEmail('');
                 setPassword('');
