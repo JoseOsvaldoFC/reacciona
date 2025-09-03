@@ -84,7 +84,7 @@ export default function ProfilePage() {
         });
     };
     
-    if (isLoading || !user) return <div className="flex h-screen items-center justify-center">Cargando perfil...</div>;
+    if (!user) return <div className="flex h-screen items-center justify-center">Cargando perfil...</div>;
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
