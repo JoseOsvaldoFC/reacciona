@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from "sonner";
 
 export default function ProfilePage() {
-    const { user, token, isAuthenticated, isLoading, refetchUser } = useAuth();
+    const { user, token, isAuthenticated, isLoading, refetchUser} = useAuth();
     const router = useRouter();
 
     // Estado para el modo de edición del perfil
