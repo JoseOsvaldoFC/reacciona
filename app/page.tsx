@@ -58,11 +58,16 @@ export default function StudentDashboard() {
 
   // useEffect para manejar la lógica de autenticación y carga de datos
   useEffect(() => {
-    // Si la carga inicial del contexto ha terminado y el usuario no está autenticado, lo redirigimos al login.
-    if (!isAuthenticated && token){
+    // Mientras el contexto está cargando el estado inicial, no hacemos nada.
+    if (isLoading) {
+      return;
+    }
+
+    // Una vez que la carga termina, si el usuario NO está autenticado, lo redirigimos.
+    if (!isAuthenticated) {
       router.push('/login');
-      return; // Si no está autenticado, se va al login
-    } 
+      return;
+    }
     
     // Si está autenticado, procedemos a cargar los módulos
     if (isAuthenticated && token) {
@@ -97,7 +102,7 @@ export default function StudentDashboard() {
         })
         .catch(error => console.error("Error al cargar los módulos:", error));
       }
-  }, [ isLoading, isAuthenticated, token, router]); // Se ejecuta cada vez que cambia el estado de autenticación
+  }, [ isLoading, isAuthenticated, token, router, logout]); // Se ejecuta cada vez que cambia el estado de autenticación
 
 
   // Se muestra mientras el AuthContext está verificando el token y cargando los datos del usuario.
