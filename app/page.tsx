@@ -240,12 +240,13 @@ export default function StudentDashboard() {
                     <CardDescription className="text-sm text-gray-600">{module.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-0 flex gap-2">
-                    <Button
-                      variant="ghost"
-                      className="w-full text-teal-600 hover:text-teal-700 hover:bg-teal-50 p-0 h-auto font-medium"
-                    >
-                      Iniciar
-                    </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full text-teal-600 hover:text-teal-700 hover:bg-teal-50 p-0 h-auto font-medium"
+                    onClick={() => router.push(`/simulation?id=${module.id}`)}
+                  >
+                    Iniciar
+                  </Button>
                     <Dialog
                       open={showDetails && selectedModule?.id === module.id}
                       onOpenChange={(open) => {
