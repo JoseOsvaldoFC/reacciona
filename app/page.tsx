@@ -243,7 +243,7 @@ export default function StudentDashboard() {
                   <Button
                     variant="ghost"
                     className="w-full text-teal-600 hover:text-teal-700 hover:bg-teal-50 p-0 h-auto font-medium"
-                    onClick={() => router.push(`/simulation?id=${module.id}`)}
+                    onClick={() => router.push(`/simulation?id=${module.id}&token=${token}`)}
                   >
                     Iniciar
                   </Button>
