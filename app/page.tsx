@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { HeartPulse, Users, Leaf, Star, Trophy, Award, Target, Shield, ChevronDown, Play } from "lucide-react"
+import { HeartPulse, Users, Leaf, Star, Trophy, Award, Target, Shield, ChevronDown, Play, HelpCircle } from "lucide-react"
 import Link from 'next/link';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
@@ -147,31 +147,43 @@ export default function StudentDashboard() {
             </div>
             <h1 className="text-xl font-bold text-gray-900">Reacciona</h1>
           </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-2 p-2">
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                  <AvatarFallback className="bg-teal-100 text-teal-700">{user.nombre.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="hidden sm:block text-left">
-                  <p className="text-sm font-medium text-gray-900">Hola, {user.nombre}</p>
-                  <p className="text-xs text-gray-500 flex items-center">
-                    Nivel 5 <Star className="w-3 h-3 ml-1 text-amber-500" /> • {user.puntos} Pts
-                  </p>
-                </div>
-                <ChevronDown className="w-4 h-4 text-gray-500" />
+          <div className="flex items-center space-x-2">
+            <Link href="/help" passHref>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Ayuda"
+                className="hover:bg-teal-100 group"
+              >
+                <HelpCircle className="w-6 h-6 text-gray-900 group-hover:text-teal-950 transition-colors" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem>Mi Progreso</DropdownMenuItem>
-              <Link href="/profile" passHref>
-              <DropdownMenuItem>Mi Perfil</DropdownMenuItem>
-              </Link>
-              <DropdownMenuItem onSelect={logout}>Cerrar Sesión</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex items-center space-x-2 p-2">
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src="/placeholder.svg?height=32&width=32" />
+                    <AvatarFallback className="bg-teal-100 text-teal-800">{user.nombre.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="hidden sm:block text-left">
+                    <p className="text-sm font-medium text-gray-900">Hola, {user.nombre}</p>
+                    <p className="text-xs text-gray-500 flex items-center">
+                      Nivel 5 <Star className="w-3 h-3 ml-1 text-amber-500" /> • {user.puntos} Pts
+                    </p>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem>Mi Progreso</DropdownMenuItem>
+                <Link href="/profile" passHref>
+                <DropdownMenuItem>Mi Perfil</DropdownMenuItem>
+                </Link>
+                <DropdownMenuItem onSelect={logout}>Cerrar Sesión</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          
         </div>
       </header>
 
