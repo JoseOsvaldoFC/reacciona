@@ -20,6 +20,7 @@ interface PasoSimulacion {
   descripcion: string
   orden: number
   escenario: string
+  video: string
   opcionesPaso: OpcionPaso[]
 }
 
@@ -135,7 +136,18 @@ useEffect(() => {
                 <p className="text-base text-gray-600">{contenidoSimulacion.cuerpo}</p>
                 <p className="text-lg sm:text-xl leading-relaxed text-gray-800 font-medium">{pasoActual.escenario}</p>
               </div>
-
+              {pasoActual.video && (
+                <div className="flex justify-center my-4">
+                  <video
+                    src={`/video/${pasoActual.video.split("\\").pop()}`}
+                    controls
+                    className="max-w-full rounded-lg shadow"
+                    style={{ maxHeight: 360 }}
+                  >
+                    Tu navegador no soporta la reproducción de video.
+                  </video>
+                </div>
+              )}
               {/* Opciones */}
               <div className="space-y-4">
                 <h3 className="text-base font-semibold text-gray-700 text-center mb-6">Selecciona tu respuesta:</h3>
