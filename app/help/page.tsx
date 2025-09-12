@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, Search, BookOpen, HelpCircle, Mail } from "lucide-react"
+import { useAuth } from "@/context/AuthContext"
 
 type Article = {
   id: string
@@ -54,11 +55,24 @@ const articles: Article[] = [
 ]
 
 export default function HelpPage() {
+  const { user } = useAuth()
   const [selectedCategory, setSelectedCategory] = useState<"FAQ" | "Manuales" | "Contacto">("FAQ")
   const [search, setSearch] = useState("")
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
   const [contactStatus, setContactStatus] = useState<"idle" | "sending" | "success" | "error">("idle")
-  const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" })
+  const [contactForm, setContactForm] = useState({
+    name: user?.nombre || "",
+    email: user?.email || "",
+    message: ""
+  })
+
+  useEffect(() => {
+    setContactForm(f => ({
+      ...f,
+      name: user?.nombre || "",
+      email: user?.email || ""
+    }))
+  }, [user])
 
   // Filtrado de artículos
   const filteredArticles = articles.filter(
