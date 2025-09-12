@@ -218,7 +218,7 @@ export default function HelpPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-teal-600 hover:bg-teal-100 group"
+                    className="text-teal-600 hover:bg-teal-100 hover:text-teal-700 transition-colors mt-2"
                     onClick={() => setSelectedArticle(null)}
                   >
                     ← Volver a la lista

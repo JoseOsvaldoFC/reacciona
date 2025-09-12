@@ -160,7 +160,7 @@ export default function StudentDashboard() {
             </Link>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center space-x-2 p-2">
+                <Button variant="ghost" className="flex items-center space-x-2 p-2 hover:bg-teal-100 group">
                   <Avatar className="w-8 h-8">
                     <AvatarImage src="/placeholder.svg?height=32&width=32" />
                     <AvatarFallback className="bg-teal-100 text-teal-800">{user.nombre.charAt(0)}</AvatarFallback>
@@ -168,18 +168,18 @@ export default function StudentDashboard() {
                   <div className="hidden sm:block text-left">
                     <p className="text-sm font-medium text-gray-900">Hola, {user.nombre}</p>
                     <p className="text-xs text-gray-500 flex items-center">
-                      Nivel 5 <Star className="w-3 h-3 ml-1 text-amber-500" /> • {user.puntos} Pts
+                      Nivel 5 <Star className="w-3 h-3 ml-1 text-teal-500" /> • {user.puntos} Pts
                     </p>
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-500" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem>Mi Progreso</DropdownMenuItem>
+                <DropdownMenuItem className="dropdown-menu__item">Mi Progreso</DropdownMenuItem>
                 <Link href="/profile" passHref>
-                <DropdownMenuItem>Mi Perfil</DropdownMenuItem>
+                <DropdownMenuItem className="dropdown-menu__item">Mi Perfil</DropdownMenuItem>
                 </Link>
-                <DropdownMenuItem onSelect={logout}>Cerrar Sesión</DropdownMenuItem>
+                <DropdownMenuItem onSelect={logout} className="dropdown-menu__item">Cerrar Sesión</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
