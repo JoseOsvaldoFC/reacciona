@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { ArrowLeft } from "lucide-react"
+import { Dialog, DialogTrigger, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import Link from "next/link"
 
 interface OpcionPaso {
@@ -13,6 +15,7 @@ interface OpcionPaso {
   textoOpcion: string
   esCorrecto: boolean
   feedback: string
+  video: string
 }
 
 interface PasoSimulacion {
@@ -52,6 +55,8 @@ export default function SimulationView() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const id = searchParams.get("id");
+  const [opcionVideo, setOpcionVideo] = useState<string | null>(null);
+  const [showVideoPopup, setShowVideoPopup] = useState(false);
 
   console.log("Token recibido por URL:", token);
   console.log("ID recibido por URL:", id);
@@ -152,32 +157,65 @@ useEffect(() => {
               <div className="space-y-4">
                 <h3 className="text-base font-semibold text-gray-700 text-center mb-6">Selecciona tu respuesta:</h3>
                 <div className="space-y-3">
-                  {pasoActual.opcionesPaso.map((opcion) => (
-                    <Button
-                      key={opcion.idOpcion}
-                      variant={selectedOption === opcion.idOpcion ? "default" : "outline"}
-                      className={`w-full p-6 h-auto text-left justify-start transition-all duration-200 ${
-                        selectedOption === opcion.idOpcion
-                          ? "bg-teal-600 hover:bg-teal-700 text-white border-teal-600"
-                          : "border-gray-300 hover:border-teal-300 hover:bg-teal-50 text-gray-700"
-                      }`}
-                      onClick={() => !showFeedback && handleOptionSelect(opcion.idOpcion)}
-                      disabled={showFeedback}
-                    >
-                      <div className="flex items-start space-x-4 w-full">
-                        <div
-                          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                            selectedOption === opcion.idOpcion ? "bg-white text-teal-600" : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {String.fromCharCode(65 + pasoActual.opcionesPaso.indexOf(opcion))}
+                {pasoActual.opcionesPaso.map((opcion) => (
+                  <Dialog
+                    open={showVideoPopup && opcionVideo === opcion.video}
+                    onOpenChange={(open) => {
+                      setShowVideoPopup(open);
+                      if (!open) setOpcionVideo(null);
+                    }}
+                    key={opcion.idOpcion}
+                  >
+                    <DialogTrigger asChild>
+                      <Button
+                        variant={selectedOption === opcion.idOpcion ? "default" : "outline"}
+                        className={`w-full p-6 h-auto text-left justify-start transition-all duration-200 ${
+                          selectedOption === opcion.idOpcion
+                            ? "bg-teal-600 hover:bg-teal-700 text-white border-teal-600"
+                            : "border-gray-300 hover:border-teal-300 hover:bg-teal-50 text-gray-700"
+                        }`}
+                        onClick={() => {
+                          if (!showFeedback) {
+                            handleOptionSelect(opcion.idOpcion);
+                            if (opcion.video) {
+                              setOpcionVideo(opcion.video);
+                              setShowVideoPopup(true);
+                            }
+                          }
+                        }}
+                        disabled={showFeedback}
+                      >
+                        <div className="flex items-start space-x-4 w-full">
+                          <div
+                            className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                              selectedOption === opcion.idOpcion ? "bg-white text-teal-600" : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {String.fromCharCode(65 + pasoActual.opcionesPaso.indexOf(opcion))}
+                          </div>
+                          <span className="text-base sm:text-lg leading-relaxed flex-1">{opcion.textoOpcion}</span>
                         </div>
-                        <span className="text-base sm:text-lg leading-relaxed flex-1">{opcion.textoOpcion}</span>
-                      </div>
-                    </Button>
-                  ))}
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent aria-describedby={undefined}>
+                    <VisuallyHidden>
+                      <DialogTitle>Video de opción</DialogTitle>
+                    </VisuallyHidden>
+                      {opcionVideo && (
+                        <video
+                          src={`/video/${opcionVideo.split("\\").pop()}`}
+                          controls
+                          autoPlay
+                          className="max-w-full rounded-lg shadow"
+                          style={{ maxHeight: 360 }}
+                        >
+                          Tu navegador no soporta la reproducción de video.
+                        </video>
+                      )}
+                    </DialogContent>
+                  </Dialog>
+                ))}
                 </div>
-
                 {/* Feedback y Continuar */}
                 {showFeedback && selectedOption && (
                   <div className="pt-6 space-y-4">
