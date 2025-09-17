@@ -5,8 +5,8 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { ArrowLeft } from "lucide-react"
-import { Dialog, DialogTrigger, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { ArrowLeft, BookOpen, Video, Type, Image} from "lucide-react"
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import Link from "next/link"
 
@@ -30,7 +30,7 @@ interface PasoSimulacion {
 interface Contenido {
   id: number
   titulo: string
-  tipoContenido: string
+  tipoContenido: "VIDEO" | "TEXTO" | "INFOGRAFIA" | "SIMULACION" | "PEDAGOGICO";
   urlRecurso: string
   cuerpo: string
   orden: number
@@ -52,6 +52,7 @@ export default function SimulationView() {
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
   const [showFeedback, setShowFeedback] = useState(false)
+  const [viewingContent, setViewingContent] = useState<Contenido | null>(null);
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const id = searchParams.get("id");
@@ -75,6 +76,7 @@ useEffect(() => {
 
   // Buscar el primer contenido con pasos de simulación
   const contenidoSimulacion = modulo?.contenidos.find(c => c.pasosSimulacion && c.pasosSimulacion.length > 0)
+  const contenidoPedagogico = modulo?.contenidos.filter(c => c.tipoContenido === 'PEDAGOGICO');
   const pasos = contenidoSimulacion?.pasosSimulacion || []
   const pasoActual = pasos[currentStep]
 
@@ -90,6 +92,33 @@ useEffect(() => {
     setShowFeedback(false)
     setSelectedOption(null)
     setCurrentStep((prev) => prev + 1)
+  }
+
+  // Función de renderizado inteligente para contenido pedagógico
+  const renderPedagogicalContent = (content: Contenido) => {
+    const isVideo = content.urlRecurso && (content.urlRecurso.includes("youtube.com") || content.urlRecurso.includes("vimeo.com"));
+    const isImage = content.urlRecurso && !isVideo;
+
+    if (isVideo) {
+      return (
+        <div className="aspect-video mt-4">
+          <iframe
+            className="w-full h-full rounded-lg"
+            src={content.urlRecurso}
+            title={content.titulo}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
+      );
+    }
+    if (isImage) {
+      return <img src={content.urlRecurso} alt={content.titulo} className="w-full rounded-lg mt-4" />;
+    }
+    if (content.cuerpo) {
+      return <div className="prose max-w-none mt-4 text-justify" dangerouslySetInnerHTML={{ __html: content.cuerpo }} />;
+    }
+    return <p>Formato de contenido no reconocido.</p>;
   }
 
   if (!modulo) {
@@ -118,6 +147,55 @@ useEffect(() => {
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </Link>
             <h1 className="text-lg font-semibold text-gray-900 flex-1">{modulo.titulo}</h1>
+
+            {/* Botón para Contenido Pedagógico */}
+            {contenidoPedagogico && contenidoPedagogico.length > 0 && (
+                <Dialog onOpenChange={(open) => !open && setViewingContent(null)}>
+                    <DialogTrigger asChild>
+                        <Button variant="outline">
+                            <BookOpen className="w-4 h-4 mr-2" />
+                            Contenido Pedagógico
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-h-[90vh] flex flex-col">
+                      {!viewingContent ? (
+                        <>
+                          <DialogHeader>
+                              <DialogTitle>Contenido Pedagógico Complementario</DialogTitle>
+                              <DialogDescription>
+                                  Material adicional para reforzar tu aprendizaje sobre {modulo.titulo}.
+                              </DialogDescription>
+                          </DialogHeader>
+                          <div className="flex-1 overflow-y-auto">
+                            <ul className="space-y-2 mt-2">
+                                {contenidoPedagogico.map((contenido) => (
+                                    <li key={contenido.id}>
+                                        <button onClick={() => setViewingContent(contenido)} className="text-left w-full p-2 rounded-md text-teal-600 hover:bg-gray-100 hover:underline">
+                                            {contenido.titulo}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <DialogHeader>
+                              <DialogTitle className="flex items-center">
+                                <button onClick={() => setViewingContent(null)} className="p-1 mr-2 rounded-full hover:bg-gray-100">
+                                  <ArrowLeft className="w-4 h-4"/>
+                                </button>
+                                {viewingContent.titulo}
+                              </DialogTitle>
+                          </DialogHeader>
+                          <div className="flex-1 overflow-y-auto pr-2">
+                            {renderPedagogicalContent(viewingContent)}
+                          </div>
+                        </>
+                      )}
+                    </DialogContent>
+                </Dialog>
+            )}
           </div>
           {/* Progress Bar */}
           <div className="space-y-2">

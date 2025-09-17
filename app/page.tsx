@@ -286,7 +286,7 @@ export default function StudentDashboard() {
                             <div>
                               <strong>Contenidos:</strong>
                               <ul className="list-disc ml-6">
-                                {selectedModule?.contenidos?.map((contenido) => (
+                                {selectedModule?.contenidos?.filter((contenido) => contenido.tipoContenido !== 'PEDAGOGICO').map((contenido) => (
                                   <li key={contenido.id}>
                                     {contenido.titulo}
                                   </li>
