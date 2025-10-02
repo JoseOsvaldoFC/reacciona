@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { ArrowLeft, BookOpen, Video, Type, Image} from "lucide-react"
+import { ArrowLeft, BookOpen, RotateCcw } from "lucide-react"
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import Link from "next/link"
@@ -58,21 +58,50 @@ export default function SimulationView() {
   const id = searchParams.get("id");
   const [opcionVideo, setOpcionVideo] = useState<string | null>(null);
   const [showVideoPopup, setShowVideoPopup] = useState(false);
+  const [loadingState, setLoadingState] = useState(true);
+  const [resuming, setResuming] = useState(false);
+  const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+  const [lockedStepIndex, setLockedStepIndex] = useState<number | null>(null);
+  const [lockedOptionId, setLockedOptionId] = useState<number | null>(null);
 
   console.log("Token recibido por URL:", token);
   console.log("ID recibido por URL:", id);
   // Cargar datos del módulo
 useEffect(() => {
-  if (!token) return; // Espera a que el token esté disponible
-  fetch(`http://localhost:8080/api/modulos/${id}`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  })
-    .then(res => res.json())
-    .then(data => setModulo(data))
-    .catch(() => setModulo(null))
-}, [token])
+  if (!token || !id) return;
+  let cancelled = false;
+  (async () => {
+    try {
+      setLoadingState(true);
+      const res = await fetch(`http://localhost:8080/api/modulos/${id}`, { headers: { 'Authorization': `Bearer ${token}` }});
+      const data: Modulo = await res.json();
+      if (cancelled) return;
+      setModulo(data);
+      // Obtener contenido de simulación (para estado)
+      const contenidoSim = data.contenidos.find(c => c.pasosSimulacion && c.pasosSimulacion.length>0);
+      if (contenidoSim) {
+        setResuming(true);
+        const stateRes = await fetch(`http://localhost:8080/api/progress/simulation/state?contenidoId=${contenidoSim.id}`, { headers: { 'Authorization': `Bearer ${token}` }});
+        if (stateRes.ok) {
+          const state = await stateRes.json();
+          if (typeof state.pasoActualIndex === 'number') {
+            setCurrentStep(state.pasoActualIndex);
+            if (state.opcionSeleccionadaId) {
+              setLockedStepIndex(state.pasoActualIndex);
+              setLockedOptionId(state.opcionSeleccionadaId);
+              setSelectedOption(state.opcionSeleccionadaId);
+              setShowFeedback(true);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error cargando simulación', e);
+    } finally {
+      if (!cancelled) { setLoadingState(false); setResuming(false);} }
+  })();
+  return () => { cancelled = true };
+}, [token, id])
 
   // Buscar el primer contenido con pasos de simulación
   const contenidoSimulacion = modulo?.contenidos.find(c => c.pasosSimulacion && c.pasosSimulacion.length > 0)
@@ -83,9 +112,28 @@ useEffect(() => {
   const totalSteps = pasos.length
   const progress = totalSteps > 0 ? Math.round(((currentStep + 1) / totalSteps) * 100) : 0
 
-  const handleOptionSelect = (idOpcion: number) => {
+  const handleOptionSelect = async (idOpcion: number) => {
     setSelectedOption(idOpcion)
     setShowFeedback(true)
+    // registrar intento backend
+    try {
+      const opcion = pasoActual.opcionesPaso.find(o => o.idOpcion === idOpcion);
+      const correcto = opcion?.esCorrecto ?? false;
+      // puntaje simple: 100 si correcto, 0 si no (podría mejorarse)
+      const puntaje = correcto ? 100 : 0;
+      await fetch('http://localhost:8080/api/progress/attempt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ pasoId: pasoActual.idPaso, correcto, puntaje, opcionSeleccionadaId: idOpcion })
+      });
+      setLockedStepIndex(currentStep);
+      setLockedOptionId(idOpcion);
+    } catch (e) {
+      console.error('Error registrando intento de progreso', e);
+    }
   }
 
   const handleContinue = () => {
@@ -121,10 +169,14 @@ useEffect(() => {
     return <p>Formato de contenido no reconocido.</p>;
   }
 
+  if (loadingState) {
+    return <div className="min-h-screen flex items-center justify-center text-gray-600">Cargando simulación...</div>
+  }
+
   if (!modulo) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-600">
-        Cargando simulación...
+        No se pudo cargar el módulo.
       </div>
     )
   }
@@ -147,6 +199,9 @@ useEffect(() => {
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </Link>
             <h1 className="text-lg font-semibold text-gray-900 flex-1">{modulo.titulo}</h1>
+            <Button variant="outline" onClick={() => setShowRestartConfirm(true)} title="Reiniciar simulación" className="mr-2">
+              <RotateCcw className="w-4 h-4 mr-1" /> Reiniciar
+            </Button>
 
             {/* Botón para Contenido Pedagógico */}
             {contenidoPedagogico && contenidoPedagogico.length > 0 && (
@@ -207,6 +262,30 @@ useEffect(() => {
           </div>
         </div>
       </header>
+      {showRestartConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl space-y-4">
+            <h2 className="text-lg font-semibold">Reiniciar simulación</h2>
+            <p className="text-sm text-gray-600">Esta acción borrará tu progreso y puntuación de esta simulación. ¿Deseas continuar?</p>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={() => setShowRestartConfirm(false)}>Cancelar</Button>
+              <Button className="bg-red-600 hover:bg-red-700" onClick={async () => {
+                try {
+                  const contenidoSim = modulo.contenidos.find(c => c.pasosSimulacion && c.pasosSimulacion.length>0);
+                  if (contenidoSim) {
+                    await fetch(`http://localhost:8080/api/progress/simulation/reset?contenidoId=${contenidoSim.id}`, { method:'POST', headers: { 'Authorization': `Bearer ${token}` }});
+                  }
+                  setCurrentStep(0);
+                  setSelectedOption(null);
+                  setShowFeedback(false);
+                  setLockedStepIndex(null);
+                  setLockedOptionId(null);
+                } catch(e){ console.error('Error reiniciando simulación', e);} finally { setShowRestartConfirm(false); }
+              }}>Reiniciar</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-8">
@@ -245,7 +324,7 @@ useEffect(() => {
         : "border-gray-300 hover:border-teal-300 hover:bg-teal-50 text-gray-700"
     }`}
     onClick={() => {
-      if (!showFeedback) {
+      if (!showFeedback && lockedStepIndex !== currentStep) {
         handleOptionSelect(opcion.idOpcion);
         if (opcion.video) {
           setOpcionVideo(opcion.video);
@@ -253,7 +332,7 @@ useEffect(() => {
         }
       }
     }}
-    disabled={showFeedback}
+    disabled={showFeedback || lockedStepIndex === currentStep}
   >
     <div className="flex items-start space-x-4 w-full">
       <div
@@ -307,7 +386,9 @@ useEffect(() => {
                     {currentStep < pasos.length - 1 ? (
                       <Button
                         onClick={handleContinue}
-                        className="w-full bg-amber-500 hover:bg-amber-600 text-white py-4 text-lg font-semibold"
+                        className="w-full bg-teal-600 hover:bg-teal-700 text-white py-4 text-lg font-semibold"
+                        // Permitimos continuar si ya se respondió (lockedStepIndex === currentStep) y se está reanudando
+                        disabled={!showFeedback}
                       >
                         Continuar
                       </Button>

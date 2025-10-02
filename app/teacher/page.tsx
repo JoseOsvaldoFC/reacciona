@@ -167,7 +167,7 @@ export default function TeacherDashboard() {
               <Plus className="w-4 h-4 mr-2" />
               Crear Grupo
             </Button>
-            <Button className="bg-amber-500 hover:bg-amber-600 text-white">
+            <Button className="bg-teal-600 hover:bg-teal-700 text-white">
               <BookOpen className="w-4 h-4 mr-2" />
               Asignar Módulo
             </Button>

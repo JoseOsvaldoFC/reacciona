@@ -175,7 +175,9 @@ export default function StudentDashboard() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem className="dropdown-menu__item">Mi Progreso</DropdownMenuItem>
+                <Link href="/progress" passHref>
+                  <DropdownMenuItem className="dropdown-menu__item">Mi Progreso</DropdownMenuItem>
+                </Link>
                 <Link href="/profile" passHref>
                 <DropdownMenuItem className="dropdown-menu__item">Mi Perfil</DropdownMenuItem>
                 </Link>
