@@ -142,6 +142,16 @@ useEffect(() => {
     setCurrentStep((prev) => prev + 1)
   }
 
+  // Función para convertir la URL de YouTube al formato de embed
+  const getYouTubeEmbedUrl = (url: string | null): string => {
+    if (!url) return "";
+    if (url.includes("watch?v=")) {
+      const videoId = url.split('v=')[1].split('&')[0]; // Extrae el ID del video
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+    return url; // Si ya está en el formato correcto, no hace nada
+  };
+
   // Función de renderizado inteligente para contenido pedagógico
   const renderPedagogicalContent = (content: Contenido) => {
     const isVideo = content.urlRecurso && (content.urlRecurso.includes("youtube.com") || content.urlRecurso.includes("vimeo.com"));
@@ -152,7 +162,7 @@ useEffect(() => {
         <div className="aspect-video mt-4">
           <iframe
             className="w-full h-full rounded-lg"
-            src={content.urlRecurso}
+            src={getYouTubeEmbedUrl(content.urlRecurso)}
             title={content.titulo}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
@@ -212,7 +222,7 @@ useEffect(() => {
                             Contenido Pedagógico
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-h-[90vh] flex flex-col">
+                    <DialogContent className="max-h-[90vh] flex flex-col sm:max-w-3xl">
                       {!viewingContent ? (
                         <>
                           <DialogHeader>
