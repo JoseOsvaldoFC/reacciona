@@ -179,8 +179,25 @@ export default function StudentDashboard() {
                   <DropdownMenuItem className="dropdown-menu__item">Mi Progreso</DropdownMenuItem>
                 </Link>
                 <Link href="/profile" passHref>
-                <DropdownMenuItem className="dropdown-menu__item">Mi Perfil</DropdownMenuItem>
+                  <DropdownMenuItem className="dropdown-menu__item">Mi Perfil</DropdownMenuItem>
                 </Link>
+                  {user.idRol === 3 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <DropdownMenuItem className="dropdown-menu__item cursor-pointer">
+                      Gestión
+                    </DropdownMenuItem>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent side="right" align="start" className="w-48">
+                    <Link href="/cursos" passHref>
+                      <DropdownMenuItem className="dropdown-menu__item">Cursos</DropdownMenuItem>
+                    </Link>
+                    <Link href="/usuarios" passHref>
+                      <DropdownMenuItem className="dropdown-menu__item">Usuarios</DropdownMenuItem>
+                    </Link>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                  )}
                 <DropdownMenuItem onSelect={logout} className="dropdown-menu__item">Cerrar Sesión</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
