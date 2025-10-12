@@ -5,10 +5,11 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { ArrowLeft, BookOpen, RotateCcw } from "lucide-react"
+import { ArrowLeft, BookOpen, RotateCcw, CheckCircle} from "lucide-react"
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import Link from "next/link"
+import { toast } from "sonner" 
 
 interface OpcionPaso {
   idOpcion: number
@@ -63,6 +64,8 @@ export default function SimulationView() {
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
   const [lockedStepIndex, setLockedStepIndex] = useState<number | null>(null);
   const [lockedOptionId, setLockedOptionId] = useState<number | null>(null);
+  const [viewedContentIds, setViewedContentIds] = useState<Set<number>>(new Set());
+  const [isMarkingAsViewed, setIsMarkingAsViewed] = useState<number | null>(null);
 
   console.log("Token recibido por URL:", token);
   console.log("ID recibido por URL:", id);
@@ -77,6 +80,14 @@ useEffect(() => {
       const data: Modulo = await res.json();
       if (cancelled) return;
       setModulo(data);
+
+      // Fetch de contenidos vistos
+      const viewedRes = await fetch(`http://localhost:8080/api/progress/module/${id}/viewed-content`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if(viewedRes.ok) {
+          const viewedIds: number[] = await viewedRes.json();
+          if (!cancelled) setViewedContentIds(new Set(viewedIds));
+      }
+
       // Obtener contenido de simulación (para estado)
       const contenidoSim = data.contenidos.find(c => c.pasosSimulacion && c.pasosSimulacion.length>0);
       if (contenidoSim) {
@@ -102,6 +113,26 @@ useEffect(() => {
   })();
   return () => { cancelled = true };
 }, [token, id])
+
+  const handleMarkAsViewed = async (contenidoId: number) => {
+    if (viewedContentIds.has(contenidoId) || isMarkingAsViewed === contenidoId) return;
+    setIsMarkingAsViewed(contenidoId);
+    try {
+        const res = await fetch(`http://localhost:8080/api/progress/content/${contenidoId}/mark-as-viewed`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error("No se pudo marcar como visto");
+        
+        // Actualizar estado local para reflejar el cambio en la UI
+        setViewedContentIds(prev => new Set(prev).add(contenidoId));
+        toast.success("Contenido marcado como revisado.");
+    } catch (error) {
+        toast.error("Error al marcar el contenido.");
+    } finally {
+        setIsMarkingAsViewed(null);
+    }
+  };
 
   // Buscar el primer contenido con pasos de simulación
   const contenidoSimulacion = modulo?.contenidos.find(c => c.pasosSimulacion && c.pasosSimulacion.length > 0)
@@ -157,26 +188,41 @@ useEffect(() => {
     const isVideo = content.urlRecurso && (content.urlRecurso.includes("youtube.com") || content.urlRecurso.includes("vimeo.com"));
     const isImage = content.urlRecurso && !isVideo;
 
-    if (isVideo) {
-      return (
-        <div className="aspect-video mt-4">
-          <iframe
-            className="w-full h-full rounded-lg"
-            src={getYouTubeEmbedUrl(content.urlRecurso)}
-            title={content.titulo}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          ></iframe>
+        return (
+        <div>
+            {isVideo && (
+                <div className="aspect-video mt-4">
+                  <iframe
+                    className="w-full h-full rounded-lg"
+                    src={getYouTubeEmbedUrl(content.urlRecurso)}
+                    title={content.titulo}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                </div>
+            )}
+            {isImage && <img src={content.urlRecurso} alt={content.titulo} className="w-full rounded-lg mt-4" />}
+            {content.cuerpo && <div className="prose prose-lg max-w-none mt-4 text-justify" dangerouslySetInnerHTML={{ __html: content.cuerpo }} />}
+            
+            {/* --- BOTÓN MODIFICADO --- */}
+            <div className="mt-6">
+                {viewedContentIds.has(content.id) ? (
+                    <Button disabled className="w-full bg-green-100 text-green-700">
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Revisado
+                    </Button>
+                ) : (
+                    <Button 
+                        className="w-full"
+                        onClick={() => handleMarkAsViewed(content.id)}
+                        disabled={isMarkingAsViewed === content.id}
+                    >
+                        {isMarkingAsViewed === content.id ? "Marcando..." : "Marcar como revisado"}
+                    </Button>
+                )}
+            </div>
         </div>
-      );
-    }
-    if (isImage) {
-      return <img src={content.urlRecurso} alt={content.titulo} className="w-full rounded-lg mt-4" />;
-    }
-    if (content.cuerpo) {
-      return <div className="prose max-w-none mt-4 text-justify" dangerouslySetInnerHTML={{ __html: content.cuerpo }} />;
-    }
-    return <p>Formato de contenido no reconocido.</p>;
+    );
   }
 
   if (loadingState) {
@@ -234,10 +280,11 @@ useEffect(() => {
                           <div className="flex-1 overflow-y-auto">
                             <ul className="space-y-2 mt-2">
                                 {contenidoPedagogico.map((contenido) => (
-                                    <li key={contenido.id}>
-                                        <button onClick={() => setViewingContent(contenido)} className="text-left w-full p-2 rounded-md text-teal-600 hover:bg-gray-100 hover:underline">
+                                    <li key={contenido.id} className="flex items-center justify-between p-2 rounded-md hover:bg-gray-100">
+                                        <button onClick={() => setViewingContent(contenido)} className="text-left flex-1 text-teal-600 hover:underline">
                                             {contenido.titulo}
                                         </button>
+                                        {viewedContentIds.has(contenido.id) && <CheckCircle className="w-5 h-5 text-green-500" />}
                                     </li>
                                 ))}
                             </ul>
