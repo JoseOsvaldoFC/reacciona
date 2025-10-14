@@ -65,7 +65,8 @@ export default function StudentDashboard() {
   const fetchDashboard = async () => {
     if (!token) return;
     try {
-      const response = await fetch('http://localhost:8080/api/dashboard/overview', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+      const response = await fetch(`${apiUrl}/api/dashboard/overview`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -125,7 +126,7 @@ export default function StudentDashboard() {
         .catch(error => console.error("Error al cargar los módulos:", error));
 
       // dashboard overview
-      fetch('http://localhost:8080/api/dashboard/overview', {
+      fetch(`${apiUrl}/api/dashboard/overview`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
         .then(r => r.ok ? r.json() : Promise.reject('No se pudo cargar overview'))
