@@ -92,3 +92,9 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+[data-radix-popper-content-wrapper] .dropdown-menu__item:hover,
+[data-radix-popper-content-wrapper] .dropdown-menu__item[data-state="open"] {
+  background-color: #ccfbf1d3 !important; /* tailwind teal-100 */
+  color: #0c3f3b !important; /* tailwind teal-700 */
+}

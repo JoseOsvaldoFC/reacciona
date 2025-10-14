@@ -1,67 +1,209 @@
 "use client"
 
-import { useState } from "react"
+import { useSearchParams } from "next/navigation"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, BookOpen, Video, Type, Image} from "lucide-react"
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import Link from "next/link"
 
+interface OpcionPaso {
+  idOpcion: number
+  textoOpcion: string
+  esCorrecto: boolean
+  feedback: string
+  video: string
+}
+
+interface PasoSimulacion {
+  idPaso: number
+  descripcion: string
+  orden: number
+  escenario: string
+  video: string
+  opcionesPaso: OpcionPaso[]
+}
+
+interface Contenido {
+  id: number
+  titulo: string
+  tipoContenido: "VIDEO" | "TEXTO" | "INFOGRAFIA" | "SIMULACION" | "PEDAGOGICO";
+  urlRecurso: string
+  cuerpo: string
+  orden: number
+  pasosSimulacion: PasoSimulacion[]
+}
+
+interface Modulo {
+  id: number
+  titulo: string
+  descripcion: string
+  tipoEmergencia: string
+  nivelDificultad: string
+  tiempoEstimado: number
+  contenidos: Contenido[]
+}
+
 export default function SimulationView() {
-  const [selectedOption, setSelectedOption] = useState<string | null>(null)
-  const [currentProgress] = useState(45) // Current simulation progress
+  const [modulo, setModulo] = useState<Modulo | null>(null)
+  const [currentStep, setCurrentStep] = useState(0)
+  const [selectedOption, setSelectedOption] = useState<number | null>(null)
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [viewingContent, setViewingContent] = useState<Contenido | null>(null);
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+  const id = searchParams.get("id");
+  const [opcionVideo, setOpcionVideo] = useState<string | null>(null);
+  const [showVideoPopup, setShowVideoPopup] = useState(false);
 
-  const scenario = {
-    title: "Desastres Naturales: Terremoto",
-    image: "/placeholder.svg?height=300&width=500",
-    text: "Estás en tu habitación y sientes un fuerte temblor. Los objetos comienzan a caer de los estantes. ¿Qué es lo primero que haces?",
-    options: [
-      {
-        id: "A",
-        text: "Salir corriendo a la calle.",
-        isCorrect: false,
-      },
-      {
-        id: "B",
-        text: "Refugiarme debajo de una mesa resistente.",
-        isCorrect: true,
-      },
-      {
-        id: "C",
-        text: "Quedarme quieto en el centro de la habitación.",
-        isCorrect: false,
-      },
-    ],
-  }
+  console.log("Token recibido por URL:", token);
+  console.log("ID recibido por URL:", id);
+  // Cargar datos del módulo
+useEffect(() => {
+  if (!token) return; // Espera a que el token esté disponible
+  fetch(`http://localhost:8080/api/modulos/${id}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+    .then(res => res.json())
+    .then(data => setModulo(data))
+    .catch(() => setModulo(null))
+}, [token])
 
-  const handleOptionSelect = (optionId: string) => {
-    setSelectedOption(optionId)
+  // Buscar el primer contenido con pasos de simulación
+  const contenidoSimulacion = modulo?.contenidos.find(c => c.pasosSimulacion && c.pasosSimulacion.length > 0)
+  const contenidoPedagogico = modulo?.contenidos.filter(c => c.tipoContenido === 'PEDAGOGICO');
+  const pasos = contenidoSimulacion?.pasosSimulacion || []
+  const pasoActual = pasos[currentStep]
+
+  const totalSteps = pasos.length
+  const progress = totalSteps > 0 ? Math.round(((currentStep + 1) / totalSteps) * 100) : 0
+
+  const handleOptionSelect = (idOpcion: number) => {
+    setSelectedOption(idOpcion)
+    setShowFeedback(true)
   }
 
   const handleContinue = () => {
-    // Logic to proceed to next scenario or show feedback
-    console.log("Selected option:", selectedOption)
+    setShowFeedback(false)
+    setSelectedOption(null)
+    setCurrentStep((prev) => prev + 1)
+  }
+
+  // Función de renderizado inteligente para contenido pedagógico
+  const renderPedagogicalContent = (content: Contenido) => {
+    const isVideo = content.urlRecurso && (content.urlRecurso.includes("youtube.com") || content.urlRecurso.includes("vimeo.com"));
+    const isImage = content.urlRecurso && !isVideo;
+
+    if (isVideo) {
+      return (
+        <div className="aspect-video mt-4">
+          <iframe
+            className="w-full h-full rounded-lg"
+            src={content.urlRecurso}
+            title={content.titulo}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
+      );
+    }
+    if (isImage) {
+      return <img src={content.urlRecurso} alt={content.titulo} className="w-full rounded-lg mt-4" />;
+    }
+    if (content.cuerpo) {
+      return <div className="prose max-w-none mt-4 text-justify" dangerouslySetInnerHTML={{ __html: content.cuerpo }} />;
+    }
+    return <p>Formato de contenido no reconocido.</p>;
+  }
+
+  if (!modulo) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-600">
+        Cargando simulación...
+      </div>
+    )
+  }
+
+  if (!contenidoSimulacion || pasos.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-600">
+        No hay pasos de simulación disponibles para este módulo.
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Minimal Header */}
+      {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-4 mb-4">
             <Link href="/" className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </Link>
-            <h1 className="text-lg font-semibold text-gray-900 flex-1">{scenario.title}</h1>
-          </div>
+            <h1 className="text-lg font-semibold text-gray-900 flex-1">{modulo.titulo}</h1>
 
+            {/* Botón para Contenido Pedagógico */}
+            {contenidoPedagogico && contenidoPedagogico.length > 0 && (
+                <Dialog onOpenChange={(open) => !open && setViewingContent(null)}>
+                    <DialogTrigger asChild>
+                        <Button variant="outline">
+                            <BookOpen className="w-4 h-4 mr-2" />
+                            Contenido Pedagógico
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-h-[90vh] flex flex-col">
+                      {!viewingContent ? (
+                        <>
+                          <DialogHeader>
+                              <DialogTitle>Contenido Pedagógico Complementario</DialogTitle>
+                              <DialogDescription>
+                                  Material adicional para reforzar tu aprendizaje sobre {modulo.titulo}.
+                              </DialogDescription>
+                          </DialogHeader>
+                          <div className="flex-1 overflow-y-auto">
+                            <ul className="space-y-2 mt-2">
+                                {contenidoPedagogico.map((contenido) => (
+                                    <li key={contenido.id}>
+                                        <button onClick={() => setViewingContent(contenido)} className="text-left w-full p-2 rounded-md text-teal-600 hover:bg-gray-100 hover:underline">
+                                            {contenido.titulo}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <DialogHeader>
+                              <DialogTitle className="flex items-center">
+                                <button onClick={() => setViewingContent(null)} className="p-1 mr-2 rounded-full hover:bg-gray-100">
+                                  <ArrowLeft className="w-4 h-4"/>
+                                </button>
+                                {viewingContent.titulo}
+                              </DialogTitle>
+                          </DialogHeader>
+                          <div className="flex-1 overflow-y-auto pr-2">
+                            {renderPedagogicalContent(viewingContent)}
+                          </div>
+                        </>
+                      )}
+                    </DialogContent>
+                </Dialog>
+            )}
+          </div>
           {/* Progress Bar */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm text-gray-600">
               <span>Progreso de la simulación</span>
-              <span>{currentProgress}%</span>
+              <span>{progress}%</span>
             </div>
-            <Progress value={currentProgress} className="h-2" />
+            <Progress value={progress} className="h-2" />
           </div>
         </div>
       </header>
@@ -70,69 +212,118 @@ export default function SimulationView() {
       <main className="max-w-4xl mx-auto px-4 py-8">
         <Card className="border-0 shadow-lg">
           <CardContent className="p-0">
-            {/* Scenario Image */}
-            <div className="relative w-full h-64 sm:h-80 bg-gray-100 rounded-t-lg overflow-hidden">
-              <img
-                src={scenario.image || "/placeholder.svg"}
-                alt="Escenario de simulación"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-            </div>
-
-            {/* Scenario Content */}
+            {/* Paso de Simulación */}
             <div className="p-6 sm:p-8 space-y-8">
-              {/* Scenario Text */}
               <div className="text-center space-y-4">
-                <p className="text-lg sm:text-xl leading-relaxed text-gray-800 font-medium">{scenario.text}</p>
+                <h2 className="text-xl font-bold text-gray-800">{contenidoSimulacion.titulo}</h2>
+                <p className="text-base text-gray-600">{contenidoSimulacion.cuerpo}</p>
+                <p className="text-lg sm:text-xl leading-relaxed text-gray-800 font-medium">{pasoActual.escenario}</p>
               </div>
-
-              {/* Decision Options */}
+              {pasoActual.video && (
+                <div className="flex justify-center my-4">
+                  <video
+                    src={`/video/${pasoActual.video.split("\\").pop()}`}
+                    controls
+                    className="max-w-full rounded-lg shadow"
+                    style={{ maxHeight: 360 }}
+                  >
+                    Tu navegador no soporta la reproducción de video.
+                  </video>
+                </div>
+              )}
+              {/* Opciones */}
               <div className="space-y-4">
                 <h3 className="text-base font-semibold text-gray-700 text-center mb-6">Selecciona tu respuesta:</h3>
-
                 <div className="space-y-3">
-                  {scenario.options.map((option) => (
-                    <Button
-                      key={option.id}
-                      variant={selectedOption === option.id ? "default" : "outline"}
-                      className={`w-full p-6 h-auto text-left justify-start transition-all duration-200 ${
-                        selectedOption === option.id
-                          ? "bg-teal-600 hover:bg-teal-700 text-white border-teal-600"
-                          : "border-gray-300 hover:border-teal-300 hover:bg-teal-50 text-gray-700"
-                      }`}
-                      onClick={() => handleOptionSelect(option.id)}
-                    >
-                      <div className="flex items-start space-x-4 w-full">
-                        <div
-                          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                            selectedOption === option.id ? "bg-white text-teal-600" : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {option.id}
+                {pasoActual.opcionesPaso.map((opcion) => (
+                  <Dialog
+                    open={showVideoPopup && opcionVideo === opcion.video}
+                    onOpenChange={(open) => {
+                      setShowVideoPopup(open);
+                      if (!open) setOpcionVideo(null);
+                    }}
+                    key={opcion.idOpcion}
+                  >
+                    <DialogTrigger asChild>
+                      <Button
+                        variant={selectedOption === opcion.idOpcion ? "default" : "outline"}
+                        className={`w-full p-6 h-auto text-left justify-start transition-all duration-200 ${
+                          selectedOption === opcion.idOpcion
+                            ? "bg-teal-600 hover:bg-teal-700 text-white border-teal-600"
+                            : "border-gray-300 hover:border-teal-300 hover:bg-teal-50 text-gray-700"
+                        }`}
+                        onClick={() => {
+                          if (!showFeedback) {
+                            handleOptionSelect(opcion.idOpcion);
+                            if (opcion.video) {
+                              setOpcionVideo(opcion.video);
+                              setShowVideoPopup(true);
+                            }
+                          }
+                        }}
+                        disabled={showFeedback}
+                      >
+                        <div className="flex items-start space-x-4 w-full">
+                          <div
+                            className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                              selectedOption === opcion.idOpcion ? "bg-white text-teal-600" : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {String.fromCharCode(65 + pasoActual.opcionesPaso.indexOf(opcion))}
+                          </div>
+                          <span className="text-base sm:text-lg leading-relaxed flex-1">{opcion.textoOpcion}</span>
                         </div>
-                        <span className="text-base sm:text-lg leading-relaxed flex-1">{option.text}</span>
-                      </div>
-                    </Button>
-                  ))}
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent aria-describedby={undefined}>
+                    <VisuallyHidden>
+                      <DialogTitle>Video de opción</DialogTitle>
+                    </VisuallyHidden>
+                      {opcionVideo && (
+                        <video
+                          src={`/video/${opcionVideo.split("\\").pop()}`}
+                          controls
+                          autoPlay
+                          className="max-w-full rounded-lg shadow"
+                          style={{ maxHeight: 360 }}
+                        >
+                          Tu navegador no soporta la reproducción de video.
+                        </video>
+                      )}
+                    </DialogContent>
+                  </Dialog>
+                ))}
                 </div>
-
-                {/* Continue Button */}
-                {selectedOption && (
-                  <div className="pt-6">
-                    <Button
-                      onClick={handleContinue}
-                      className="w-full bg-amber-500 hover:bg-amber-600 text-white py-4 text-lg font-semibold"
-                    >
-                      Continuar
-                    </Button>
+                {/* Feedback y Continuar */}
+                {showFeedback && selectedOption && (
+                  <div className="pt-6 space-y-4">
+                    <div className={`p-4 rounded-lg text-base font-medium ${
+                      pasoActual.opcionesPaso.find(o => o.idOpcion === selectedOption)?.esCorrecto
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }`}>
+                      {
+                        pasoActual.opcionesPaso.find(o => o.idOpcion === selectedOption)?.feedback
+                      }
+                    </div>
+                    {currentStep < pasos.length - 1 ? (
+                      <Button
+                        onClick={handleContinue}
+                        className="w-full bg-amber-500 hover:bg-amber-600 text-white py-4 text-lg font-semibold"
+                      >
+                        Continuar
+                      </Button>
+                    ) : (
+                      <div className="text-center text-lg font-semibold text-teal-700">
+                        ¡Simulación finalizada!
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             </div>
           </CardContent>
         </Card>
-
         {/* Help Text */}
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-500">Tómate tu tiempo para pensar en la mejor respuesta. No hay prisa.</p>
