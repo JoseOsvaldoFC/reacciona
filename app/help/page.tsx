@@ -87,7 +87,8 @@ export default function HelpPage() {
     e.preventDefault()
     setContactStatus("sending")
     try {
-      const res = await fetch("http://localhost:8080/api/contacto", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+      const res = await fetch(`${apiUrl}/api/contacto`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(contactForm),

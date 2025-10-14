@@ -76,13 +76,14 @@ useEffect(() => {
   (async () => {
     try {
       setLoadingState(true);
-      const res = await fetch(`http://localhost:8080/api/modulos/${id}`, { headers: { 'Authorization': `Bearer ${token}` }});
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+      const res = await fetch(`${apiUrl}/api/modulos/${id}`, { headers: { 'Authorization': `Bearer ${token}` }});
       const data: Modulo = await res.json();
       if (cancelled) return;
       setModulo(data);
 
       // Fetch de contenidos vistos
-      const viewedRes = await fetch(`http://localhost:8080/api/progress/module/${id}/viewed-content`, { headers: { 'Authorization': `Bearer ${token}` } });
+      const viewedRes = await fetch(`${apiUrl}/api/progress/module/${id}/viewed-content`, { headers: { 'Authorization': `Bearer ${token}` } });
       if(viewedRes.ok) {
           const viewedIds: number[] = await viewedRes.json();
           if (!cancelled) setViewedContentIds(new Set(viewedIds));
@@ -92,7 +93,8 @@ useEffect(() => {
       const contenidoSim = data.contenidos.find(c => c.pasosSimulacion && c.pasosSimulacion.length>0);
       if (contenidoSim) {
         setResuming(true);
-        const stateRes = await fetch(`http://localhost:8080/api/progress/simulation/state?contenidoId=${contenidoSim.id}`, { headers: { 'Authorization': `Bearer ${token}` }});
+        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+        const stateRes = await fetch(`${apiUrl}/api/progress/simulation/state?contenidoId=${contenidoSim.id}`, { headers: { 'Authorization': `Bearer ${token}` }});
         if (stateRes.ok) {
           const state = await stateRes.json();
           if (typeof state.pasoActualIndex === 'number') {
@@ -118,7 +120,8 @@ useEffect(() => {
     if (viewedContentIds.has(contenidoId) || isMarkingAsViewed === contenidoId) return;
     setIsMarkingAsViewed(contenidoId);
     try {
-        const res = await fetch(`http://localhost:8080/api/progress/content/${contenidoId}/mark-as-viewed`, {
+        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+        const res = await fetch(`${apiUrl}/api/progress/content/${contenidoId}/mark-as-viewed`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -152,7 +155,8 @@ useEffect(() => {
       const correcto = opcion?.esCorrecto ?? false;
       // puntaje simple: 100 si correcto, 0 si no (podría mejorarse)
       const puntaje = correcto ? 100 : 0;
-      await fetch('http://localhost:8080/api/progress/attempt', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+      await fetch(`${apiUrl}/api/progress/attempt`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -202,7 +206,7 @@ useEffect(() => {
                 </div>
             )}
             {isImage && <img src={content.urlRecurso} alt={content.titulo} className="w-full rounded-lg mt-4" />}
-            {content.cuerpo && <div className="prose prose-lg max-w-none mt-4 text-justify" dangerouslySetInnerHTML={{ __html: content.cuerpo }} />}
+            {content.cuerpo && <div className="prose prose-sm sm:prose-base lg:prose-lg max-w-none mt-4 text-justify" dangerouslySetInnerHTML={{ __html: content.cuerpo }} />}
             
             {/* --- BOTÓN MODIFICADO --- */}
             <div className="mt-6">
@@ -245,72 +249,75 @@ useEffect(() => {
     )
   }
 
-  return (
+return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center space-x-4 mb-4">
-            <Link href="/" className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </Link>
-            <h1 className="text-lg font-semibold text-gray-900 flex-1">{modulo.titulo}</h1>
-            <Button variant="outline" onClick={() => setShowRestartConfirm(true)} title="Reiniciar simulación" className="mr-2">
-              <RotateCcw className="w-4 h-4 mr-1" /> Reiniciar
-            </Button>
+        <div className="max-w-4xl mx-auto px-4 py-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="flex items-center space-x-2">
+              <Link href="/" className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <ArrowLeft className="w-5 h-5 text-gray-600" />
+              </Link>
+              <h1 className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-1">{modulo.titulo}</h1>
+            </div>
+            <div className="flex items-center space-x-2 self-end sm:self-center">
+              <Button variant="outline" onClick={() => setShowRestartConfirm(true)} title="Reiniciar simulación" size="sm">
+                <RotateCcw className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Reiniciar</span>
+              </Button>
 
             {/* Botón para Contenido Pedagógico */}
-            {contenidoPedagogico && contenidoPedagogico.length > 0 && (
+              {contenidoPedagogico && contenidoPedagogico.length > 0 && (
                 <Dialog onOpenChange={(open) => !open && setViewingContent(null)}>
-                    <DialogTrigger asChild>
-                        <Button variant="outline">
-                            <BookOpen className="w-4 h-4 mr-2" />
-                            Contenido Pedagógico
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-h-[90vh] flex flex-col sm:max-w-3xl">
-                      {!viewingContent ? (
-                        <>
-                          <DialogHeader>
-                              <DialogTitle>Contenido Pedagógico Complementario</DialogTitle>
-                              <DialogDescription>
-                                  Material adicional para reforzar tu aprendizaje sobre {modulo.titulo}.
-                              </DialogDescription>
-                          </DialogHeader>
-                          <div className="flex-1 overflow-y-auto">
-                            <ul className="space-y-2 mt-2">
-                                {contenidoPedagogico.map((contenido) => (
-                                    <li key={contenido.id} className="flex items-center justify-between p-2 rounded-md hover:bg-gray-100">
-                                        <button onClick={() => setViewingContent(contenido)} className="text-left flex-1 text-teal-600 hover:underline">
-                                            {contenido.titulo}
-                                        </button>
-                                        {viewedContentIds.has(contenido.id) && <CheckCircle className="w-5 h-5 text-green-500" />}
-                                    </li>
-                                ))}
-                            </ul>
-                          </div>
-                        </>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <BookOpen className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Contenido</span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-h-[90vh] flex flex-col sm:max-w-3xl w-[95%] sm:w-full rounded-lg">
+                    {!viewingContent ? (
+                      <>
+                        <DialogHeader>
+                          <DialogTitle>Contenido Pedagógico Complementario</DialogTitle>
+                          <DialogDescription>
+                            Material adicional para reforzar tu aprendizaje sobre {modulo.titulo}.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex-1 overflow-y-auto">
+                          <ul className="space-y-2 mt-2">
+                            {contenidoPedagogico.map((contenido) => (
+                              <li key={contenido.id} className="flex items-center justify-between p-2 rounded-md hover:bg-gray-100">
+                                <button onClick={() => setViewingContent(contenido)} className="text-left flex-1 text-teal-600 hover:underline">
+                                  {contenido.titulo}
+                                </button>
+                                {viewedContentIds.has(contenido.id) && <CheckCircle className="w-5 h-5 text-green-500" />}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </>
                       ) : (
                         <>
-                          <DialogHeader>
-                              <DialogTitle className="flex items-center">
-                                <button onClick={() => setViewingContent(null)} className="p-1 mr-2 rounded-full hover:bg-gray-100">
-                                  <ArrowLeft className="w-4 h-4"/>
-                                </button>
-                                {viewingContent.titulo}
-                              </DialogTitle>
-                          </DialogHeader>
-                          <div className="flex-1 overflow-y-auto pr-2">
-                            {renderPedagogicalContent(viewingContent)}
-                          </div>
-                        </>
-                      )}
-                    </DialogContent>
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center">
+                            <button onClick={() => setViewingContent(null)} className="p-1 mr-2 rounded-full hover:bg-gray-100">
+                              <ArrowLeft className="w-4 h-4"/>
+                            </button>
+                            {viewingContent.titulo}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="flex-1 overflow-y-auto pr-2">
+                          {renderPedagogicalContent(viewingContent)}
+                        </div>
+                      </>
+                    )}
+                  </DialogContent>
                 </Dialog>
-            )}
+              )}
+            </div>
           </div>
           {/* Progress Bar */}
-          <div className="space-y-2">
+          <div className="space-y-2 mt-3">
             <div className="flex justify-between text-sm text-gray-600">
               <span>Progreso de la simulación</span>
               <span>{progress}%</span>
@@ -330,7 +337,8 @@ useEffect(() => {
                 try {
                   const contenidoSim = modulo.contenidos.find(c => c.pasosSimulacion && c.pasosSimulacion.length>0);
                   if (contenidoSim) {
-                    await fetch(`http://localhost:8080/api/progress/simulation/reset?contenidoId=${contenidoSim.id}`, { method:'POST', headers: { 'Authorization': `Bearer ${token}` }});
+                    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+                    await fetch(`${apiUrl}/api/progress/simulation/reset?contenidoId=${contenidoSim.id}`, { method:'POST', headers: { 'Authorization': `Bearer ${token}` }});
                   }
                   setCurrentStep(0);
                   setSelectedOption(null);
@@ -345,15 +353,15 @@ useEffect(() => {
       )}
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <Card className="border-0 shadow-lg">
+      <main className="max-w-4xl mx-auto px-2 sm:px-4 py-6">
+        <Card className="border-0 shadow-lg w-full">
           <CardContent className="p-0">
             {/* Paso de Simulación */}
-            <div className="p-6 sm:p-8 space-y-8">
+            <div className="p-4 sm:p-6 md:p-8 space-y-6">
               <div className="text-center space-y-4">
-                <h2 className="text-xl font-bold text-gray-800">{contenidoSimulacion.titulo}</h2>
-                <p className="text-base text-gray-600">{contenidoSimulacion.cuerpo}</p>
-                <p className="text-lg sm:text-xl leading-relaxed text-gray-800 font-medium">{pasoActual.escenario}</p>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-800">{contenidoSimulacion.titulo}</h2>
+                <p className="text-sm sm:text-base text-gray-600">{contenidoSimulacion.cuerpo}</p>
+                <p className="text-base sm:text-lg md:text-xl leading-relaxed text-gray-800 font-medium">{pasoActual.escenario}</p>
               </div>
               {pasoActual.video && (
                 <div className="flex justify-center my-4">
@@ -369,40 +377,40 @@ useEffect(() => {
               )}
               {/* Opciones */}
               <div className="space-y-4">
-                <h3 className="text-base font-semibold text-gray-700 text-center mb-6">Selecciona tu respuesta:</h3>
+                <h3 className="text-sm sm:text-base font-semibold text-gray-700 text-center mb-4">Selecciona tu respuesta:</h3>
                 <div className="space-y-3">
-{pasoActual.opcionesPaso.map((opcion) => (
-  <Button
-    key={opcion.idOpcion}
-    variant={selectedOption === opcion.idOpcion ? "default" : "outline"}
-    className={`w-full p-6 h-auto text-left justify-start transition-all duration-200 ${
-      selectedOption === opcion.idOpcion
-        ? "bg-teal-600 hover:bg-teal-700 text-white border-teal-600"
-        : "border-gray-300 hover:border-teal-300 hover:bg-teal-50 text-gray-700"
-    }`}
-    onClick={() => {
-      if (!showFeedback && lockedStepIndex !== currentStep) {
-        handleOptionSelect(opcion.idOpcion);
-        if (opcion.video) {
-          setOpcionVideo(opcion.video);
-          setShowVideoPopup(true);
-        }
-      }
-    }}
-    disabled={showFeedback || lockedStepIndex === currentStep}
-  >
-    <div className="flex items-start space-x-4 w-full">
-      <div
-        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-          selectedOption === opcion.idOpcion ? "bg-white text-teal-600" : "bg-gray-100 text-gray-600"
-        }`}
-      >
-        {String.fromCharCode(65 + pasoActual.opcionesPaso.indexOf(opcion))}
-      </div>
-      <span className="text-base sm:text-lg leading-relaxed flex-1">{opcion.textoOpcion}</span>
-    </div>
-  </Button>
-))}
+                  {pasoActual.opcionesPaso.map((opcion) => (
+                    <Button
+                      key={opcion.idOpcion}
+                      variant={selectedOption === opcion.idOpcion ? "default" : "outline"}
+                      className={`w-full p-4 h-auto text-left justify-start transition-all duration-200 whitespace-normal ${
+                        selectedOption === opcion.idOpcion
+                          ? "bg-teal-600 hover:bg-teal-700 text-white border-teal-600"
+                          : "border-gray-300 hover:border-teal-300 hover:bg-teal-50 text-gray-700"
+                      }`}
+                      onClick={() => {
+                        if (!showFeedback && lockedStepIndex !== currentStep) {
+                          handleOptionSelect(opcion.idOpcion);
+                          if (opcion.video) {
+                            setOpcionVideo(opcion.video);
+                            setShowVideoPopup(true);
+                          }
+                        }
+                      }}
+                      disabled={showFeedback || lockedStepIndex === currentStep}
+                    >
+                      <div className="flex items-start space-x-3 sm:space-x-4 w-full min-w-0">
+                        <div
+                          className={`flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm ${
+                            selectedOption === opcion.idOpcion ? "bg-white text-teal-600" : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {String.fromCharCode(65 + pasoActual.opcionesPaso.indexOf(opcion))}
+                        </div>
+                        <span className="text-sm sm:text-base leading-relaxed flex-1 min-w-0 break-words">{opcion.textoOpcion}</span>
+                      </div>
+                    </Button>
+                  ))}
 <Dialog
   open={showVideoPopup}
   onOpenChange={(open) => {
@@ -443,7 +451,7 @@ useEffect(() => {
                     {currentStep < pasos.length - 1 ? (
                       <Button
                         onClick={handleContinue}
-                        className="w-full bg-teal-600 hover:bg-teal-700 text-white py-4 text-lg font-semibold"
+                        className="w-full bg-teal-600 hover:bg-teal-700 text-white py-3 sm:py-4 text-base sm:text-lg font-semibold"
                         // Permitimos continuar si ya se respondió (lockedStepIndex === currentStep) y se está reanudando
                         disabled={!showFeedback}
                       >

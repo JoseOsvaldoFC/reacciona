@@ -16,7 +16,8 @@ export default function ForgotPasswordPage() {
         e.preventDefault();
         startTransition(async () => {
             try {
-                await fetch('http://localhost:8080/api/auth/forgot-password', {
+                const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+                await fetch(`${apiUrl}/api/auth/forgot-password`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email }),

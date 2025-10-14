@@ -44,7 +44,8 @@ export default function ProfilePage() {
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
         startTransition(async () => {
-            const response = await fetch('http://localhost:8080/api/usuarios/me', {
+            const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+            const response = await fetch(`${apiUrl}/api/usuarios/me`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ nombre, email })
@@ -66,7 +67,8 @@ export default function ProfilePage() {
             return;
         }
         startTransition(async () => {
-            const response = await fetch('http://localhost:8080/api/usuarios/me/change-password', {
+            const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+            const response = await fetch(`${apiUrl}/api/usuarios/me/change-password`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ currentPassword, newPassword, confirmationPassword })

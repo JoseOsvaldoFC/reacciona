@@ -71,7 +71,8 @@ export default function StudentDashboard() {
     
     // Si está autenticado, procedemos a cargar los módulos
     if (isAuthenticated && token) {
-      fetch('http://localhost:8080/api/modulos',{
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+      fetch(`${apiUrl}/api/modulos`,{
         headers: {
           'Authorization': `Bearer ${token}`
         }
