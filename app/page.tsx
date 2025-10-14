@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { HeartPulse, Users, Leaf, Star, Trophy, Award, Target, Shield, ChevronDown, Play, HelpCircle } from "lucide-react"
 import Link from 'next/link';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { useProgress } from '@/hooks/useProgress';
 
 
 // Definimos un "tipo" para el Módulo, para que coincida con nuestro backend
@@ -50,11 +51,31 @@ export default function StudentDashboard() {
   const [showDetails, setShowDetails] = useState(false);
 
   const {  isAuthenticated, user, token, isLoading, logout} = useAuth();
+  const [dashboard, setDashboard] = useState<any | null>(null);
   const router = useRouter();
+  
+  // Usamos el hook de progreso para obtener datos actualizados automáticamente
+  const { data: progressData } = useProgress();
 
   const [selectedCategory, setSelectedCategory] = useState("Todos")
   // Creamos un estado para guardar los módulos que vienen de la API
   const [modules, setModules] = useState<Module[]>([])
+
+  // Función para recargar dashboard
+  const fetchDashboard = async () => {
+    if (!token) return;
+    try {
+      const response = await fetch('http://localhost:8080/api/dashboard/overview', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDashboard(data);
+      }
+    } catch (error) {
+      console.warn('Error al cargar dashboard:', error);
+    }
+  };
 
   // useEffect para manejar la lógica de autenticación y carga de datos
   useEffect(() => {
@@ -69,7 +90,7 @@ export default function StudentDashboard() {
       return;
     }
     
-    // Si está autenticado, procedemos a cargar los módulos
+    // Si está autenticado, procedemos a cargar los módulos y dashboard
     if (isAuthenticated && token) {
       const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
       fetch(`${apiUrl}/api/modulos`,{
@@ -102,8 +123,23 @@ export default function StudentDashboard() {
           setModules(formattedModules);
         })
         .catch(error => console.error("Error al cargar los módulos:", error));
+
+      // dashboard overview
+      fetch('http://localhost:8080/api/dashboard/overview', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(r => r.ok ? r.json() : Promise.reject('No se pudo cargar overview'))
+        .then(data => setDashboard(data))
+        .catch(e => console.warn('Overview dashboard error', e));
       }
   }, [ isLoading, isAuthenticated, token, router, logout]); // Se ejecuta cada vez que cambia el estado de autenticación
+
+  // Efecto para recargar dashboard cuando cambien los datos de progreso
+  useEffect(() => {
+    if (progressData) {
+      fetchDashboard();
+    }
+  }, [progressData]);
 
 
   // Se muestra mientras el AuthContext está verificando el token y cargando los datos del usuario.
@@ -113,7 +149,7 @@ export default function StudentDashboard() {
   
   // GENERAMOS las categorías para los botones a partir del mapeo
   // Así aseguramos que siempre estén sincronizados.
-  const categories = [
+  const categories: { name: string; original?: string }[] = [
     { name: "Todos" },
     ...Object.entries(categoryDetails).map(([key, value]) => ({ name: value.plural, original: key }))
   ];
@@ -123,7 +159,7 @@ export default function StudentDashboard() {
     ? modules 
     : modules.filter((module) => {
         const categoryInfo = categories.find(c => c.name === selectedCategory);
-        return module.category === categoryInfo?.original;
+        return categoryInfo?.original ? module.category === categoryInfo.original : true;
       });
 
   const achievements = [
@@ -169,7 +205,7 @@ export default function StudentDashboard() {
                   <div className="hidden sm:block text-left">
                     <p className="text-sm font-medium text-gray-900">Hola, {user.nombre}</p>
                     <p className="text-xs text-gray-500 flex items-center">
-                      Nivel 5 <Star className="w-3 h-3 ml-1 text-teal-500" /> • {user.puntos} Pts
+                      Nivel {progressData ? Math.floor((progressData.totalScore || 0) / 500) + 1 : (dashboard?.level ?? '-')} <Star className="w-3 h-3 ml-1 text-teal-500" /> • {progressData?.totalScore ?? dashboard?.puntos ?? user.puntos} Pts
                     </p>
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-500" />
@@ -196,22 +232,75 @@ export default function StudentDashboard() {
         <Card className="border-0 shadow-md">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg text-gray-900">Continuar tu última lección:</CardTitle>
-            <CardDescription className="text-base font-medium text-gray-700">
-              Primeros Auxilios: RCP Básico
-            </CardDescription>
+            {(() => {
+              // Priorizamos datos del progreso si están disponibles
+              let lastModule = null;
+              if (progressData?.modules) {
+                // Buscar módulo en progreso o el último tocado que no esté completo
+                lastModule = progressData.modules
+                  .filter(m => m.status !== 'COMPLETED' && m.status !== 'NOT_STARTED')
+                  .sort((a, b) => b.porcentaje - a.porcentaje)[0];
+                
+                // Si no hay en progreso, buscar cualquiera que no esté completo
+                if (!lastModule) {
+                  lastModule = progressData.modules
+                    .filter(m => m.status !== 'COMPLETED')
+                    .sort((a, b) => b.porcentaje - a.porcentaje)[0];
+                }
+              }
+              
+              // Si no hay datos de progreso, usar dashboard
+              if (!lastModule) {
+                lastModule = dashboard?.lastModule;
+              }
+
+              return lastModule ? (
+                <CardDescription className="text-base font-medium text-gray-700">
+                  {lastModule.titulo}
+                </CardDescription>
+              ) : (
+                <CardDescription className="text-base font-medium text-gray-500">
+                  Aún no has comenzado ningún módulo.
+                </CardDescription>
+              );
+            })()}
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Progreso</span>
-                <span>75%</span>
-              </div>
-              <Progress value={75} className="h-2" />
-            </div>
-            <Button className="w-full bg-teal-600 hover:bg-teal-700 text-white">
-              <Play className="w-4 h-4 mr-2" />
-              Continuar
-            </Button>
+            {(() => {
+              // Misma lógica para obtener el módulo
+              let lastModule = null;
+              if (progressData?.modules) {
+                lastModule = progressData.modules
+                  .filter(m => m.status !== 'COMPLETED' && m.status !== 'NOT_STARTED')
+                  .sort((a, b) => b.porcentaje - a.porcentaje)[0];
+                
+                if (!lastModule) {
+                  lastModule = progressData.modules
+                    .filter(m => m.status !== 'COMPLETED')
+                    .sort((a, b) => b.porcentaje - a.porcentaje)[0];
+                }
+              }
+              
+              if (!lastModule) {
+                lastModule = dashboard?.lastModule;
+              }
+
+              return lastModule && (
+                <>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>Progreso</span>
+                      <span>{lastModule.porcentaje}%</span>
+                    </div>
+                    <Progress value={lastModule.porcentaje} className="h-2" />
+                  </div>
+                  <Button className="w-full bg-teal-600 hover:bg-teal-700 text-white" onClick={() => router.push(`/simulation?id=${lastModule.moduleId || lastModule.moduloId}&token=${token}`)}>
+                    <Play className="w-4 h-4 mr-2" />
+                    Continuar
+                  </Button>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
 
