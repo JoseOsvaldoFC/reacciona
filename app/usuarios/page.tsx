@@ -98,7 +98,7 @@ export default function GestionUsuariosPage() {
                 variant="outline"
                 size="sm"
                 aria-label="Ir al dashboard"
-                onClick={() => router.push(`/?token=${token}`)}
+                onClick={() => router.push('/')}
                 className="flex items-center gap-2"
               >
                 <LayoutDashboard className="w-4 h-4" />
