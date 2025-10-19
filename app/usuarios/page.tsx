@@ -3,12 +3,9 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { ChevronDown, HelpCircle, Star, ArrowLeft, LayoutDashboard } from "lucide-react"
+import { LayoutDashboard } from "lucide-react"
 
 interface Usuario {
   idUsuario: number
@@ -25,12 +22,14 @@ const roles = [
 ]
 
 export default function GestionUsuariosPage() {
-  const { user, token, isAuthenticated, isLoading, refetchUser } = useAuth();
+  const { user, token, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filtroNombre, setFiltroNombre] = useState("");
+  // Estado para los roles seleccionados
+  const [rolesSeleccionados, setRolesSeleccionados] = useState<Record<number, number>>({});
 
   useEffect(() => {
     if (isLoading) return;
@@ -54,41 +53,51 @@ export default function GestionUsuariosPage() {
         if (!res.ok) throw new Error("No se pudo cargar la lista de usuarios");
         return res.json();
       })
-      .then(data => setUsuarios(data))
+      .then(data => {
+        setUsuarios(data);
+        // Inicializa los roles seleccionados con los actuales
+        const inicial: Record<number, number> = {};
+        data.forEach((u: Usuario) => {
+          inicial[u.idUsuario] = u.idRol;
+        });
+        setRolesSeleccionados(inicial);
+      })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [token, user]);
-
-  const handleRolChange = async (idUsuario: number, nuevoRol: number) => {
-    try {
-      const response = await fetch('http://localhost:8080/api/usuarios/update-role', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ idUsuario, idRol: nuevoRol })
-      });
-      if (!response.ok) {
-        throw new Error("No se pudo actualizar el rol");
-      }
-      setUsuarios(usuarios =>
-        usuarios.map(u =>
-          u.idUsuario === idUsuario ? { ...u, idRol: nuevoRol } : u
-        )
-      );
-    } catch (e) {
-      alert("No se pudo actualizar el rol");
-    }
-  };
 
   // Filtrado dinámico por nombre
   const usuariosFiltrados = usuarios.filter(u =>
     u.nombre.toLowerCase().includes(filtroNombre.toLowerCase())
   );
 
+  // Guardar cambios y redirigir
+  const handleGuardarYDashboard = async () => {
+    setLoading(true);
+    try {
+      // Prepara el array de usuarios con sus nuevos roles
+      const payload = usuariosFiltrados.map(u => ({
+        idUsuario: u.idUsuario,
+        idRol: rolesSeleccionados[u.idUsuario]
+      }));
+      const response = await fetch('http://localhost:8080/api/usuarios/update-roles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        throw new Error("No se pudo actualizar los roles");
+      }
+      router.push('/');
+    } catch (e: any) {
+      setError(e.message || "Error al actualizar los roles");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-
-
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         <Card className="border-0 shadow-md">
           <CardHeader>
@@ -97,17 +106,17 @@ export default function GestionUsuariosPage() {
               <Button
                 variant="outline"
                 size="sm"
-                aria-label="Ir al dashboard"
-                onClick={() => router.push('/')}
+                aria-label="Guardar e ir al dashboard"
+                onClick={handleGuardarYDashboard}
                 className="flex items-center gap-2"
+                disabled={loading}
               >
                 <LayoutDashboard className="w-4 h-4" />
-                Ir al dashboard
+                Guardar e ir al dashboard
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            {/* Filtro dinámico por nombre */}
             <div className="mb-4 flex items-center gap-2">
               <label htmlFor="filtro-nombre" className="text-gray-700 font-medium">Filtrar por nombre:</label>
               <input
@@ -136,8 +145,11 @@ export default function GestionUsuariosPage() {
                       <td className="px-4 py-2">{usuario.email}</td>
                       <td className="px-4 py-2">
                         <select
-                          value={usuario.idRol}
-                          onChange={e => handleRolChange(usuario.idUsuario, Number(e.target.value))}
+                          value={rolesSeleccionados[usuario.idUsuario]}
+                          onChange={e => setRolesSeleccionados({
+                            ...rolesSeleccionados,
+                            [usuario.idUsuario]: Number(e.target.value)
+                          })}
                           className="border rounded px-2 py-1 bg-gray-50"
                         >
                           {roles.map(rol => (
