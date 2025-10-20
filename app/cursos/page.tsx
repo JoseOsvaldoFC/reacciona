@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Pencil } from "lucide-react"
 
 interface UsuarioBrief {
   id: number
@@ -16,6 +17,9 @@ interface UsuarioBrief {
 interface ModuloBrief {
   id: number
   titulo: string
+  descripcion: string
+  tipoEmergencia: string
+  nivelDificultad: string
 }
 
 interface Clase {
@@ -35,6 +39,20 @@ export default function CursosPage() {
   const [clases, setClases] = useState<Clase[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedAlumnos, setSelectedAlumnos] = useState<UsuarioBrief[] | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
+
+  // Modulos modal
+  const [selectedModulos, setSelectedModulos] = useState<ModuloBrief[] | null>(null)
+  const [modulosModalOpen, setModulosModalOpen] = useState(false)
+  const openModulosModal = (modulos: ModuloBrief[] | undefined) => {
+    setSelectedModulos(modulos ?? [])
+    setModulosModalOpen(true)
+  }
+  const closeModulosModal = () => {
+    setModulosModalOpen(false)
+    setSelectedModulos(null)
+  }
 
   useEffect(() => {
     if (isLoading) return
@@ -69,6 +87,15 @@ export default function CursosPage() {
     return () => controller.abort()
   }, [token, isAuthenticated, isLoading, router])
 
+  const openAlumnosModal = (alumnos: UsuarioBrief[] | undefined) => {
+    setSelectedAlumnos(alumnos ?? [])
+    setModalOpen(true)
+  }
+  const closeAlumnosModal = () => {
+    setModalOpen(false)
+    setSelectedAlumnos(null)
+  }
+
   if (isLoading || loading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -102,9 +129,9 @@ export default function CursosPage() {
                     <th className="px-4 py-2 text-left text-gray-700">Nombre de la Clase</th>
                     <th className="px-4 py-2 text-left text-gray-700">Descripción</th>
                     <th className="px-4 py-2 text-left text-gray-700">Docente</th>
-                    <th className="px-4 py-2 text-left text-gray-700">Alumnos</th>
-                    <th className="px-4 py-2 text-left text-gray-700">Módulos</th>
-                    <th className="px-4 py-2 text-left text-gray-700">Acciones</th>
+                    <th className="px-4 py-2 text-center text-gray-700">Alumnos</th>
+                    <th className="px-4 py-2 text-center text-gray-700">Módulos</th>
+                    <th className="px-4 py-2 text-center text-gray-700">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -113,20 +140,140 @@ export default function CursosPage() {
                       <td className="px-4 py-2">{clase.nombreClase}</td>
                       <td className="px-4 py-2">{clase.descripcion}</td>
                       <td className="px-4 py-2">{clase.nombreDocente}</td>
-                      <td className="px-4 py-2">{clase.alumnos?.length ?? 0}</td>
-                      <td className="px-4 py-2">{clase.modulos?.length ?? 0}</td>
-                      <td className="px-4 py-2">
-                        <Link href={`/cursos/${clase.id}`} passHref>
-                          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                            Ver Detalles
-                          </Button>
-                        </Link>
+                      <td className="px-4 py-2 text-center">
+                        <div className="flex gap-2 justify-center">
+                          <button
+                            onClick={() => openAlumnosModal(clase.alumnos)}
+                            className="text-sm text-teal-600 hover:underline"
+                            aria-label={`Ver ${clase.alumnos?.length ?? 0} módulos`}
+                          >
+                            {clase.alumnos?.length ?? 0}
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <div className="flex gap-2 justify-center">
+                          <button
+                            onClick={() => openModulosModal(clase.modulos)}
+                            className="text-sm text-teal-600 hover:underline"
+                            aria-label={`Ver ${clase.modulos?.length ?? 0} módulos`}
+                          >
+                            {clase.modulos?.length ?? 0}
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <div className="flex gap-2 justify-center">
+                          <Link href={`/cursos/${clase.id}`} passHref>
+                            <Button variant="outline" size="sm" className="flex items-center gap-2">
+                              <Pencil className="w-4 h-4" />
+                              Editar
+                            </Button>
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+
+            {/* Modal Alumnos */}
+            {modalOpen && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center"
+                role="dialog"
+                aria-modal="true"
+              >
+                <div className="fixed inset-0 bg-black/40" onClick={closeAlumnosModal} />
+                <div className="relative z-10 w-full max-w-lg mx-4 bg-white rounded-lg shadow-lg">
+                  <div className="flex items-center justify-between px-4 py-3 border-b">
+                    <h3 className="text-lg font-medium">Alumnos</h3>
+                    <button
+                      onClick={closeAlumnosModal}
+                      className="text-gray-600 hover:text-gray-900"
+                      aria-label="Cerrar"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="p-4 max-h-80 overflow-auto">
+                    {selectedAlumnos && selectedAlumnos.length > 0 ? (
+                      <ul className="space-y-3">
+                        {selectedAlumnos.map(a => (
+                          <li key={a.id} className="border rounded p-3 bg-gray-50">
+                            <div className="font-medium">{a.nombre}</div>
+                            <div className="text-sm text-gray-600">{a.email}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="text-gray-600">No hay alumnos en esta clase.</div>
+                    )}
+                  </div>
+                  <div className="px-4 py-3 border-t flex justify-end">
+                    <Button onClick={closeAlumnosModal}>Cerrar</Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Módulos */}
+            {modulosModalOpen && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center"
+                role="dialog"
+                aria-modal="true"
+              >
+                <div className="fixed inset-0 bg-black/40" onClick={closeModulosModal} />
+                <div className="relative z-10 w-full max-w-2xl mx-4 bg-white rounded-lg shadow-lg">
+                  <div className="flex items-center justify-between px-4 py-3 border-b">
+                    <h3 className="text-lg font-medium">Módulos</h3>
+                    <button
+                      onClick={closeModulosModal}
+                      className="text-gray-600 hover:text-gray-900"
+                      aria-label="Cerrar"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="p-4 max-h-96 overflow-auto space-y-4">
+                    {selectedModulos && selectedModulos.length > 0 ? (
+                      <ul className="space-y-4">
+                        {selectedModulos.map(m => (
+                          <li key={m.id} className="border rounded-lg p-4 bg-gray-50">
+                            <div className="flex items-start justify-between">
+                              <div className="pr-4">
+                                <div className="text-base font-semibold text-gray-900">{m.titulo}</div>
+                                {m.descripcion && (
+                                  <div className="text-sm text-gray-600 mt-1">{m.descripcion}</div>
+                                )}
+                              </div>
+
+                              <div className="ml-4 flex flex-col items-end gap-2">
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+                                  Tipo: <span className="ml-1 font-semibold">{m.tipoEmergencia}</span>
+                                </span>
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                                  Nivel: <span className="ml-1 font-semibold">{m.nivelDificultad ?? "N/A"}</span>
+                                </span>
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="text-gray-600">No hay módulos en esta clase.</div>
+                    )}
+                  </div>
+
+                  <div className="px-4 py-3 border-t flex justify-end">
+                    <Button onClick={closeModulosModal}>Cerrar</Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>
