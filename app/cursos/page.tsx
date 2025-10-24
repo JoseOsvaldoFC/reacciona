@@ -52,6 +52,15 @@ export default function CursosPage() {
   const [removeLoading, setRemoveLoading] = useState(false)
   const [removeError, setRemoveError] = useState<string | null>(null)
 
+  // Modal para agregar alumnos
+  const [addModalOpen, setAddModalOpen] = useState(false)
+  const [claseToAdd, setClaseToAdd] = useState<Clase | null>(null)
+  const [availableStudents, setAvailableStudents] = useState<UsuarioBrief[]>([])
+  const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([])
+  const [addLoading, setAddLoading] = useState(false)
+  const [availableLoading, setAvailableLoading] = useState(false)
+  const [availableError, setAvailableError] = useState<string | null>(null)
+  
   const openModulosModal = (modulos: ModuloBrief[] | undefined) => {
     setSelectedModulos(modulos ?? [])
     setModulosModalOpen(true)
@@ -114,6 +123,45 @@ export default function CursosPage() {
     setRemoveError(null)
   }
 
+  const openAddModal = async (clase: Clase) => {
+    setClaseToAdd(clase)
+    setAvailableStudents([])
+    setSelectedStudentIds([])
+    setAvailableError(null)
+    setAddModalOpen(true)
+    if (!token) return
+    setAvailableLoading(true)
+    try {
+      const res = await fetch("http://localhost:8080/api/usuarios/rol/estudiante/clase-empty", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!res.ok) throw new Error(`Error ${res.status}`)
+      const data = await res.json()
+      // map backend response to UsuarioBrief {id,nombre,email}
+      const students: UsuarioBrief[] = data.map((u: any) => ({
+        id: u.id,
+        nombre: u.nombre,
+        email: u.username ?? u.email
+      }))
+      setAvailableStudents(students)
+    } catch (err: any) {
+      setAvailableError(err?.message || "No se pudo cargar alumnos disponibles")
+    } finally {
+      setAvailableLoading(false)
+    }
+  }
+  const closeAddModal = () => {
+    setAddModalOpen(false)
+    setClaseToAdd(null)
+    setAvailableStudents([])
+    setSelectedStudentIds([])
+    setAvailableError(null)
+  }
+
+  const toggleSelectStudent = (id: number) => {
+    setSelectedStudentIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
   const handleRemoveAlumno = async (idAlumno: number) => {
     if (!token) return
     setRemoveLoading(true)
@@ -140,6 +188,34 @@ export default function CursosPage() {
       setRemoveError(err?.message || "Error al eliminar alumno")
     } finally {
       setRemoveLoading(false)
+    }
+  }
+
+  const handleAssignStudents = async () => {
+    if (!token || !claseToAdd) return
+    if (selectedStudentIds.length === 0) return closeAddModal()
+    setAddLoading(true)
+    try {
+      const res = await fetch(`http://localhost:8080/api/usuarios/${claseToAdd.id}/asignar-clase`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(selectedStudentIds)
+      })
+      if (!res.ok) throw new Error(`Error ${res.status}`)
+
+      // actualizar estado local: agregar alumnos seleccionados a la clase
+      const added = availableStudents.filter(s => selectedStudentIds.includes(s.id))
+      setClases(prev =>
+        prev.map(c => c.id === claseToAdd.id ? { ...c, alumnos: [...c.alumnos, ...added] } : c)
+      )
+      closeAddModal()
+    } catch (err: any) {
+      setAvailableError(err?.message || "Error al agregar alumnos")
+    } finally {
+      setAddLoading(false)
     }
   }
 
@@ -211,8 +287,8 @@ export default function CursosPage() {
                       </td>
                       <td className="px-4 py-2 text-center">
                         <div className="flex gap-2 justify-center">
-                          <Link
-                            href={`/cursos/${clase.id}/agregar-alumnos`}
+                          <button
+                            onClick={() => openAddModal(clase)}
                             className="inline-flex items-center gap-3 px-3 py-1 rounded-full bg-teal-50 text-teal-700 hover:bg-teal-100 focus:outline-none"
                             aria-label="Agregar alumnos"
                           >
@@ -220,7 +296,7 @@ export default function CursosPage() {
                               <Plus className="w-4 h-4" />
                             </span>
                             <span className="font-medium">Agregar</span>
-                          </Link>
+                          </button>
 
                           <button
                             onClick={() => openRemoveModal(clase)}
@@ -374,6 +450,54 @@ export default function CursosPage() {
 
                   <div className="px-4 py-3 border-t flex justify-end gap-2">
                     <Button variant="outline" onClick={closeRemoveModal} disabled={removeLoading}>Cancelar</Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal: agregar alumnos a la clase */}
+            {addModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
+                <div className="fixed inset-0 bg-black/40" onClick={closeAddModal} />
+                <div className="relative z-10 w-full max-w-2xl mx-4 bg-white rounded-lg shadow-lg">
+                  <div className="flex items-center justify-between px-4 py-3 border-b">
+                    <h3 className="text-lg font-medium">Seleccione los alumnos que desea incorporar a la clase</h3>
+                    <button onClick={closeAddModal} className="text-gray-600 hover:text-gray-900" aria-label="Cerrar">✕</button>
+                  </div>
+                  <div className="p-4 max-h-96 overflow-auto">
+                    {availableLoading ? (
+                      <div className="text-gray-600">Cargando alumnos...</div>
+                    ) : availableError ? (
+                      <div className="text-red-600">{availableError}</div>
+                    ) : availableStudents.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {availableStudents.map(s => {
+                          const selected = selectedStudentIds.includes(s.id)
+                          return (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() => toggleSelectStudent(s.id)}
+                              className={`flex items-start gap-3 p-3 rounded-lg border ${selected ? "bg-teal-50 border-teal-300" : "bg-white hover:bg-gray-50"}`}
+                            >
+                              <div className={`w-5 h-5 rounded-full flex-shrink-0 ${selected ? "bg-teal-600" : "bg-gray-200"}`} />
+                              <div className="text-left">
+                                <div className="font-medium text-sm">{s.nombre}</div>
+                                <div className="text-xs text-gray-500">{s.email}</div>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-gray-600">No hay alumnos disponibles.</div>
+                    )}
+                  </div>
+                  <div className="px-4 py-3 border-t flex justify-end gap-2">
+                    <Button variant="outline" onClick={closeAddModal} disabled={addLoading}>Cancelar</Button>
+                    <Button onClick={handleAssignStudents} disabled={addLoading || selectedStudentIds.length === 0}>
+                      {addLoading ? "Agregando..." : "Agregar"}
+                    </Button>
                   </div>
                 </div>
               </div>
