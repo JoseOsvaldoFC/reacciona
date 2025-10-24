@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, Suspense, useTransition } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter} from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,17 +10,20 @@ import Link from 'next/link';
 
 function ResetPasswordForm() {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const [token, setToken] = useState<string | null>(null);
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [isPending, startTransition] = useTransition(); // 2. Inicializamos la transición
+    const [isPending, startTransition] = useTransition();
+    const [error, setError] = useState<string | null>(null);
     
     useEffect(() => {
         const tokenFromUrl = searchParams.get('token');
         if (tokenFromUrl) {
             setToken(tokenFromUrl);
+            setError(null)
         } else {
-            toast.error('Token no encontrado o inválido. Por favor, solicita un nuevo enlace.');
+            toast.error('Token no encontrado en el enlace.');
         }
     }, [searchParams]);
 
@@ -30,9 +33,13 @@ function ResetPasswordForm() {
             toast.error('Las contraseñas no coinciden.');
             return;
         }
+        if (!token) {
+            setError('Token no válido.');
+            return;
+        }
 
-        // 3. Envolvemos la lógica asíncrona en startTransition
         startTransition(async () => {
+            setError(null)
             try {
                 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
                 const response = await fetch(`${apiUrl}/api/auth/reset-password`, {
@@ -52,27 +59,49 @@ function ResetPasswordForm() {
                 setConfirmPassword('');
 
             } catch (err: any) {
+                setError(err.message);
                 toast.error(err.message);
             }
         });
     };
 
-    if (!token) {
+if (error) {
+        // Muestra mensaje de error y opción para solicitar nuevo enlace
         return (
-             <Card className="mx-auto max-w-sm">
+             <Card className="mx-auto max-w-sm w-full">
                 <CardHeader>
                     <CardTitle className="text-2xl text-destructive">Error</CardTitle>
-                    <CardDescription>El enlace de recuperación es inválido o ha expirado.</CardDescription>
+                    <CardDescription>{error}</CardDescription> {/* Muestra el mensaje de error */}
                 </CardHeader>
-                <CardContent>
-                     <Link href="/forgot-password">
-                        <Button variant="outline" className="w-full">Solicitar un nuevo enlace</Button>
+                <CardContent className="space-y-4">
+                     <p className="text-sm text-center">Por favor, solicita un nuevo enlace de recuperación.</p>
+                     <Link href="/forgot-password" className="w-full">
+                        <Button variant="outline" className="w-full">
+                            Solicitar nuevo enlace
+                        </Button>
                      </Link>
+                     <div className="text-center text-sm">
+                        <Link href="/login" className="underline text-teal-600">
+                           Ir a Iniciar Sesión
+                        </Link>
+                     </div>
                 </CardContent>
             </Card>
-        )
+        );
     }
 
+    // Muestra el formulario si no hay error y el token existe (aunque sea inválido, el submit lo verificará)
+    if (!token && !error) {
+        // Estado intermedio mientras se lee el token de la URL
+        return (
+            <Card className="mx-auto max-w-sm w-full">
+                <CardHeader><CardTitle>Cargando...</CardTitle></CardHeader>
+                <CardContent>Verificando enlace...</CardContent>
+            </Card>
+        );
+    }
+
+    // Renderizado del formulario normal si hay token y no hay error inicial
     return (
         <Card className="mx-auto max-w-sm w-full">
             <CardHeader>
@@ -89,16 +118,13 @@ function ResetPasswordForm() {
                         <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
                         <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required disabled={isPending} />
                     </div>
-                    
-                    {/* 5. Deshabilitamos el botón y cambiamos el texto durante la carga */}
                     <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700" disabled={isPending}>
                         {isPending ? "Actualizando..." : "Cambiar Contraseña"}
                     </Button>
                 </form>
-                {/* 6. Añadimos un link para volver al login */}
                 <div className="mt-4 text-center text-sm">
                     <Link href="/login" className="underline text-teal-600">
-                       Ir a Iniciar Sesión
+                       Volver a Iniciar Sesión
                     </Link>
                 </div>
             </CardContent>
@@ -106,9 +132,9 @@ function ResetPasswordForm() {
     );
 }
 
-// Envolvemos el componente en Suspense porque useSearchParams lo requiere.
 export default function ResetPasswordPage() {
     return (
+        // Suspense sigue siendo necesario por useSearchParams
         <Suspense fallback={<div className="flex h-screen items-center justify-center">Cargando...</div>}>
             <div className="flex items-center justify-center min-h-screen bg-gray-50">
                 <ResetPasswordForm />
