@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Pencil } from "lucide-react"
+import { Pencil, Plus, Trash } from "lucide-react"
 
 interface UsuarioBrief {
   id: number
@@ -42,9 +42,25 @@ export default function CursosPage() {
   const [selectedAlumnos, setSelectedAlumnos] = useState<UsuarioBrief[] | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
 
-  // Modulos modal
+  // Estado para modal de módulos
   const [selectedModulos, setSelectedModulos] = useState<ModuloBrief[] | null>(null)
   const [modulosModalOpen, setModulosModalOpen] = useState(false)
+  
+  // Modal para eliminar alumno de una clase
+  const [removeModalOpen, setRemoveModalOpen] = useState(false)
+  const [claseToRemove, setClaseToRemove] = useState<Clase | null>(null)
+  const [removeLoading, setRemoveLoading] = useState(false)
+  const [removeError, setRemoveError] = useState<string | null>(null)
+
+  // Modal para agregar alumnos
+  const [addModalOpen, setAddModalOpen] = useState(false)
+  const [claseToAdd, setClaseToAdd] = useState<Clase | null>(null)
+  const [availableStudents, setAvailableStudents] = useState<UsuarioBrief[]>([])
+  const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([])
+  const [addLoading, setAddLoading] = useState(false)
+  const [availableLoading, setAvailableLoading] = useState(false)
+  const [availableError, setAvailableError] = useState<string | null>(null)
+  
   const openModulosModal = (modulos: ModuloBrief[] | undefined) => {
     setSelectedModulos(modulos ?? [])
     setModulosModalOpen(true)
@@ -96,6 +112,113 @@ export default function CursosPage() {
     setSelectedAlumnos(null)
   }
 
+  const openRemoveModal = (clase: Clase) => {
+    setClaseToRemove(clase)
+    setRemoveError(null)
+    setRemoveModalOpen(true)
+  }
+  const closeRemoveModal = () => {
+    setRemoveModalOpen(false)
+    setClaseToRemove(null)
+    setRemoveError(null)
+  }
+
+  const openAddModal = async (clase: Clase) => {
+    setClaseToAdd(clase)
+    setAvailableStudents([])
+    setSelectedStudentIds([])
+    setAvailableError(null)
+    setAddModalOpen(true)
+    if (!token) return
+    setAvailableLoading(true)
+    try {
+      const res = await fetch("http://localhost:8080/api/usuarios/rol/estudiante/clase-empty", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!res.ok) throw new Error(`Error ${res.status}`)
+      const data = await res.json()
+      // map backend response to UsuarioBrief {id,nombre,email}
+      const students: UsuarioBrief[] = data.map((u: any) => ({
+        id: u.id,
+        nombre: u.nombre,
+        email: u.username ?? u.email
+      }))
+      setAvailableStudents(students)
+    } catch (err: any) {
+      setAvailableError(err?.message || "No se pudo cargar alumnos disponibles")
+    } finally {
+      setAvailableLoading(false)
+    }
+  }
+  const closeAddModal = () => {
+    setAddModalOpen(false)
+    setClaseToAdd(null)
+    setAvailableStudents([])
+    setSelectedStudentIds([])
+    setAvailableError(null)
+  }
+
+  const toggleSelectStudent = (id: number) => {
+    setSelectedStudentIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  const handleRemoveAlumno = async (idAlumno: number) => {
+    if (!token) return
+    setRemoveLoading(true)
+    setRemoveError(null)
+    try {
+      const res = await fetch(`http://localhost:8080/api/usuarios/${idAlumno}/remove-clase`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        }
+      })
+      if (!res.ok) throw new Error(`Error ${res.status}`)
+
+      // actualizar estado local para mantener la posición en la UI
+      setClases(prev =>
+        prev.map(c =>
+          c.id === claseToRemove?.id ? { ...c, alumnos: c.alumnos.filter(a => a.id !== idAlumno) } : c
+        )
+      )
+
+      closeRemoveModal()
+    } catch (err: any) {
+      setRemoveError(err?.message || "Error al eliminar alumno")
+    } finally {
+      setRemoveLoading(false)
+    }
+  }
+
+  const handleAssignStudents = async () => {
+    if (!token || !claseToAdd) return
+    if (selectedStudentIds.length === 0) return closeAddModal()
+    setAddLoading(true)
+    try {
+      const res = await fetch(`http://localhost:8080/api/usuarios/${claseToAdd.id}/asignar-clase`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(selectedStudentIds)
+      })
+      if (!res.ok) throw new Error(`Error ${res.status}`)
+
+      // actualizar estado local: agregar alumnos seleccionados a la clase
+      const added = availableStudents.filter(s => selectedStudentIds.includes(s.id))
+      setClases(prev =>
+        prev.map(c => c.id === claseToAdd.id ? { ...c, alumnos: [...c.alumnos, ...added] } : c)
+      )
+      closeAddModal()
+    } catch (err: any) {
+      setAvailableError(err?.message || "Error al agregar alumnos")
+    } finally {
+      setAddLoading(false)
+    }
+  }
+
   if (isLoading || loading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -131,7 +254,7 @@ export default function CursosPage() {
                     <th className="px-4 py-2 text-left text-gray-700">Docente</th>
                     <th className="px-4 py-2 text-center text-gray-700">Alumnos</th>
                     <th className="px-4 py-2 text-center text-gray-700">Módulos</th>
-                    <th className="px-4 py-2 text-center text-gray-700">Acciones</th>
+                    <th className="px-4 py-2 text-center text-gray-700">Acciones con los Alumnos</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -164,12 +287,27 @@ export default function CursosPage() {
                       </td>
                       <td className="px-4 py-2 text-center">
                         <div className="flex gap-2 justify-center">
-                          <Link href={`/cursos/${clase.id}`} passHref>
-                            <Button variant="outline" size="sm" className="flex items-center gap-2">
-                              <Pencil className="w-4 h-4" />
-                              Editar
-                            </Button>
-                          </Link>
+                          <button
+                            onClick={() => openAddModal(clase)}
+                            className="inline-flex items-center gap-3 px-3 py-1 rounded-full bg-teal-50 text-teal-700 hover:bg-teal-100 focus:outline-none"
+                            aria-label="Agregar alumnos"
+                          >
+                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-teal-600 text-white">
+                              <Plus className="w-4 h-4" />
+                            </span>
+                            <span className="font-medium">Agregar</span>
+                          </button>
+
+                          <button
+                            onClick={() => openRemoveModal(clase)}
+                            aria-label="Quitar alumnos"
+                            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 text-red-700 hover:bg-red-100 focus:outline-none"
+                          >
+                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-600 text-white">
+                              <Trash className="w-4 h-4" />
+                            </span>
+                            <span className="font-medium">Eliminar</span>
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -270,6 +408,96 @@ export default function CursosPage() {
 
                   <div className="px-4 py-3 border-t flex justify-end">
                     <Button onClick={closeModulosModal}>Cerrar</Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal: eliminar alumno de la clase */}
+            {removeModalOpen && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center"
+                role="dialog"
+                aria-modal="true"
+              >
+                <div className="fixed inset-0 bg-black/40" onClick={closeRemoveModal} />
+                <div className="relative z-10 w-full max-w-lg mx-4 bg-white rounded-lg shadow-lg">
+                  <div className="flex items-center justify-between px-4 py-3 border-b">
+                    <h3 className="text-lg font-medium">Seleccione al alumno que desea eliminar de la clase</h3>
+                    <button onClick={closeRemoveModal} className="text-gray-600 hover:text-gray-900" aria-label="Cerrar">✕</button>
+                  </div>
+
+                  <div className="p-4 max-h-80 overflow-auto">
+                    {claseToRemove?.alumnos && claseToRemove.alumnos.length > 0 ? (
+                      <div className="flex flex-wrap gap-3">
+                        {claseToRemove.alumnos.map(a => (
+                          <button
+                            key={a.id}
+                            onClick={() => handleRemoveAlumno(a.id)}
+                            disabled={removeLoading}
+                            className="inline-flex flex-col items-start gap-1 px-4 py-2 rounded-lg border bg-white hover:bg-red-50 text-left"
+                          >
+                            <span className="font-medium text-sm text-red-700">{a.nombre}</span>
+                            <span className="text-xs text-gray-500">{a.email}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-gray-600">No hay alumnos en esta clase.</div>
+                    )}
+                    {removeError && <div className="text-sm text-red-600 mt-3">{removeError}</div>}
+                  </div>
+
+                  <div className="px-4 py-3 border-t flex justify-end gap-2">
+                    <Button variant="outline" onClick={closeRemoveModal} disabled={removeLoading}>Cancelar</Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal: agregar alumnos a la clase */}
+            {addModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
+                <div className="fixed inset-0 bg-black/40" onClick={closeAddModal} />
+                <div className="relative z-10 w-full max-w-2xl mx-4 bg-white rounded-lg shadow-lg">
+                  <div className="flex items-center justify-between px-4 py-3 border-b">
+                    <h3 className="text-lg font-medium">Seleccione los alumnos que desea incorporar a la clase</h3>
+                    <button onClick={closeAddModal} className="text-gray-600 hover:text-gray-900" aria-label="Cerrar">✕</button>
+                  </div>
+                  <div className="p-4 max-h-96 overflow-auto">
+                    {availableLoading ? (
+                      <div className="text-gray-600">Cargando alumnos...</div>
+                    ) : availableError ? (
+                      <div className="text-red-600">{availableError}</div>
+                    ) : availableStudents.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {availableStudents.map(s => {
+                          const selected = selectedStudentIds.includes(s.id)
+                          return (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() => toggleSelectStudent(s.id)}
+                              className={`flex items-start gap-3 p-3 rounded-lg border ${selected ? "bg-teal-50 border-teal-300" : "bg-white hover:bg-gray-50"}`}
+                            >
+                              <div className={`w-5 h-5 rounded-full flex-shrink-0 ${selected ? "bg-teal-600" : "bg-gray-200"}`} />
+                              <div className="text-left">
+                                <div className="font-medium text-sm">{s.nombre}</div>
+                                <div className="text-xs text-gray-500">{s.email}</div>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-gray-600">No hay alumnos disponibles.</div>
+                    )}
+                  </div>
+                  <div className="px-4 py-3 border-t flex justify-end gap-2">
+                    <Button variant="outline" onClick={closeAddModal} disabled={addLoading}>Cancelar</Button>
+                    <Button onClick={handleAssignStudents} disabled={addLoading || selectedStudentIds.length === 0}>
+                      {addLoading ? "Agregando..." : "Agregar"}
+                    </Button>
                   </div>
                 </div>
               </div>

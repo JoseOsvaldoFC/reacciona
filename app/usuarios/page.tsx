@@ -13,6 +13,8 @@ interface Usuario {
   email: string
   puntos: number
   idRol: number
+  // idClase viene en el response; puede ser null
+  idClase?: number | null
 }
 
 const roles = [
@@ -144,18 +146,23 @@ export default function GestionUsuariosPage() {
                       <td className="px-4 py-2">{usuario.nombre}</td>
                       <td className="px-4 py-2">{usuario.email}</td>
                       <td className="px-4 py-2">
-                        <select
-                          value={rolesSeleccionados[usuario.idUsuario]}
-                          onChange={e => setRolesSeleccionados({
-                            ...rolesSeleccionados,
-                            [usuario.idUsuario]: Number(e.target.value)
-                          })}
-                          className="border rounded px-2 py-1 bg-gray-50"
-                        >
-                          {roles.map(rol => (
-                            <option key={rol.value} value={rol.value}>{rol.label}</option>
-                          ))}
-                        </select>
+                        {(usuario.idRol === 1 && usuario.idClase === null) ? (
+                          <select
+                            value={rolesSeleccionados[usuario.idUsuario] ?? usuario.idRol}
+                            onChange={e =>
+                              setRolesSeleccionados(prev => ({ ...prev, [usuario.idUsuario]: Number(e.target.value) }))
+                            }
+                            className="border rounded px-2 py-1 bg-gray-50"
+                          >
+                            {roles.map(rol => (
+                              <option key={rol.value} value={rol.value}>{rol.label}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="text-sm text-gray-700 font-medium">
+                            {roles.find(r => r.value === (rolesSeleccionados[usuario.idUsuario] ?? usuario.idRol))?.label ?? "Desconocido"}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
