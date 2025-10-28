@@ -34,7 +34,7 @@ export default function LoginPage() {
                 const data = await response.json();
                 await login(data.token);
                 toast.success("¡Bienvenido de nuevo!");
-                window.location.href = '/';
+                // La redirección se maneja automáticamente en el AuthContext según el rol
             } catch (err: any) {
                 toast.error(err.message);
             }

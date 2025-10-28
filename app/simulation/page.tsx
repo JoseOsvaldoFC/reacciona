@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
+import RoleProtectedRoute from "@/components/RoleProtectedRoute"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -48,7 +49,7 @@ interface Modulo {
   contenidos: Contenido[]
 }
 
-export default function SimulationView() {
+function SimulationView() {
   const [modulo, setModulo] = useState<Modulo | null>(null)
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
@@ -474,5 +475,13 @@ return (
         </div>
       </main>
     </div>
+  )
+}
+
+export default function ProtectedSimulationView() {
+  return (
+    <RoleProtectedRoute allowedRoles={[1]}>
+      <SimulationView />
+    </RoleProtectedRoute>
   )
 }

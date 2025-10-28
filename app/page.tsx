@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from 'next/navigation';
+import RoleProtectedRoute from "@/components/RoleProtectedRoute"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -45,7 +46,7 @@ const categoryDetails: { [key: string]: { icon: React.ElementType, color: string
 
 
 
-export default function StudentDashboard() {
+function StudentDashboard() {
 
   const [selectedModule, setSelectedModule] = useState<Module | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -428,5 +429,13 @@ export default function StudentDashboard() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function ProtectedStudentDashboard() {
+  return (
+    <RoleProtectedRoute allowedRoles={[1,3]}>
+      <StudentDashboard />
+    </RoleProtectedRoute>
   )
 }

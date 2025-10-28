@@ -93,8 +93,29 @@ body {
   }
 }
 
+/* Estilos personalizados para dropdown y select items */
 [data-radix-popper-content-wrapper] .dropdown-menu__item:hover,
 [data-radix-popper-content-wrapper] .dropdown-menu__item[data-state="open"] {
   background-color: #ccfbf1d3 !important; /* tailwind teal-100 */
   color: #0c3f3b !important; /* tailwind teal-700 */
+}
+
+/* Estilos para DropdownMenuItem - cambiar de naranja a verde */
+[data-radix-menu-content] [role="menuitem"]:hover,
+[data-radix-menu-content] [role="menuitem"][data-highlighted] {
+  background-color: #ccfbf1 !important; /* teal-100 */
+  color: #0f766e !important; /* teal-700 */
+}
+
+/* Estilos para SelectItem - cambiar de naranja a verde */
+[data-radix-select-viewport] [role="option"]:hover,
+[data-radix-select-viewport] [role="option"][data-highlighted],
+[data-radix-select-viewport] [role="option"][data-state="checked"] {
+  background-color: #ccfbf1 !important; /* teal-100 */
+  color: #0f766e !important; /* teal-700 */
+}
+
+/* Asegurar que el check icon también sea verde */
+[data-radix-select-viewport] [role="option"][data-state="checked"] svg {
+  color: #0f766e !important; /* teal-700 */
 }

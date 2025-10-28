@@ -13,7 +13,7 @@ interface User {
 interface AuthContextType {
     token: string | null;
     user: User | null;
-    login: (token: string) => void;
+    login: (token: string) => Promise<void>;
     logout: () => void;
     isAuthenticated: boolean;
     isLoading: boolean;
@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true); // Inicia como true
 
-    const fetchUser = async (authToken: string) => {
+    const fetchUser = async (authToken: string, shouldRedirect: boolean = false) => {
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
             const response = await fetch(`${apiUrl}/api/usuarios/me`, {
@@ -36,6 +36,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (response.ok) {
                 const userData = await response.json();
                 setUser(userData);
+                
+                // Solo redirigir si es un login nuevo, no al cargar la página
+                if (shouldRedirect) {
+                    redirectUserBasedOnRole(userData);
+                }
             } else {
                 logout();
             }
@@ -61,8 +66,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(true);
         setToken(newToken);
         localStorage.setItem('jwt_token', newToken);
-        await fetchUser(newToken);
+        await fetchUser(newToken, true); // true para indicar que debe redirigir
         setIsLoading(false);
+    };
+
+    const redirectUserBasedOnRole = (user: User) => {
+        // Redirigir según el rol del usuario
+        if (user.idRol === 1) {
+            // Estudiante - ir a la página principal del estudiante
+            window.location.href = '/';
+        } else if (user.idRol === 2) {
+            // Docente/Profesor - ir al dashboard del profesor
+            window.location.href = '/teacher';
+        } else if (user.idRol === 3) {
+            // Administrador - ir a la página principal (puede acceder a todo)
+            window.location.href = '/';
+        } else {
+            // Rol desconocido - ir a la página principal por defecto
+            window.location.href = '/';
+        }
     };
 
     const logout = () => {
