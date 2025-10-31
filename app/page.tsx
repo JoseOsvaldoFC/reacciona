@@ -181,9 +181,10 @@ function StudentDashboard() {
       <header className="bg-white shadow-sm border-b px-4 py-3">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">R</span>
-            </div>
+            <Avatar className="w-8 h-8">
+              <AvatarImage src="/Logo.jpeg" alt="Reacciona" />
+              <AvatarFallback className="bg-teal-600 text-white">R</AvatarFallback>
+            </Avatar>
             <h1 className="text-xl font-bold text-gray-900">Reacciona</h1>
           </div>
           <div className="flex items-center space-x-2">
