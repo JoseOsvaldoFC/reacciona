@@ -13,7 +13,8 @@ import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Users, TrendingUp, AlertTriangle, ChevronDown, Eye, RefreshCw, Filter, Calendar, Download } from "lucide-react"
+import { Users, TrendingUp, AlertTriangle, ChevronDown, Eye, RefreshCw, Filter, Calendar, Download, HelpCircle } from "lucide-react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -204,39 +205,51 @@ function TeacherDashboard() {
             <span className="text-gray-500 text-sm hidden sm:inline">Panel de Docente</span>
           </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-2 p-2 hover:bg-teal-50">
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                  <AvatarFallback className="bg-teal-100 text-teal-700">
-                    {user?.nombre ? user.nombre.split(' ').map(n => n[0]).join('').toUpperCase() : 'PR'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="hidden sm:block text-left">
-                  <p className="text-sm font-medium text-gray-900">
-                    {user?.nombre ? user.nombre : 'Profesor'}
-                  </p>
-                  <p className="text-xs text-gray-500">Docente</p>
-                </div>
-                <ChevronDown className="w-4 h-4 text-gray-500" />
+          <div className="flex items-center space-x-2">
+            <Link href="/help" passHref>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Ayuda"
+                className="hover:bg-teal-100 group"
+              >
+                <HelpCircle className="w-6 h-6 text-gray-900 group-hover:text-teal-950 transition-colors" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem 
-                onClick={() => router.push('/profile')}
-                className="hover:bg-teal-100 hover:text-teal-700 focus:bg-teal-100 focus:text-teal-700 cursor-pointer"
-              >
-                Mi Perfil
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={logout}
-                className="hover:bg-teal-100 hover:text-teal-700 focus:bg-teal-100 focus:text-teal-700 cursor-pointer"
-              >
-                Cerrar Sesión
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex items-center space-x-2 p-2 hover:bg-teal-50">
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src="/placeholder.svg?height=32&width=32" />
+                    <AvatarFallback className="bg-teal-100 text-teal-700">
+                      {user?.nombre ? user.nombre.split(' ').map(n => n[0]).join('').toUpperCase() : 'PR'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="hidden sm:block text-left">
+                    <p className="text-sm font-medium text-gray-900">
+                      {user?.nombre ? user.nombre : 'Profesor'}
+                    </p>
+                    <p className="text-xs text-gray-500">Docente</p>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem 
+                  onClick={() => router.push('/profile')}
+                  className="hover:bg-teal-100 hover:text-teal-700 focus:bg-teal-100 focus:text-teal-700 cursor-pointer"
+                >
+                  Mi Perfil
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={logout}
+                  className="hover:bg-teal-100 hover:text-teal-700 focus:bg-teal-100 focus:text-teal-700 cursor-pointer"
+                >
+                  Cerrar Sesión
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
 
