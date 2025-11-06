@@ -510,7 +510,7 @@ function TeacherDashboard() {
                           onClick={() => handleSortChange('score')}
                           className="p-0 h-auto font-medium"
                         >
-                          Puntaje Promedio
+                          Puntaje Total
                           {filters.sortBy === 'score' && (
                             <span className="ml-1">{filters.sortOrder === 'asc' ? '↑' : '↓'}</span>
                           )}

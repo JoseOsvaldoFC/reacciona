@@ -164,13 +164,8 @@ function StudentDashboard() {
         return categoryInfo?.original ? module.category === categoryInfo.original : true;
       });
 
-  const achievements = [
-    { icon: Trophy, name: "Primera Lección" },
-    { icon: Star, name: "Nivel 5" },
-    { icon: Award, name: "Experto en RCP" },
-    { icon: Target, name: "Meta Semanal" },
-    { icon: HeartPulse, name: "Héroe Médico" },
-  ]
+  // Logros dinámicos (máximo 5) provenientes del backend. Si no hay, se mostrará un mensaje motivacional.
+  const achievements: any[] = dashboard?.achievements || []
 
 
   // El JSX de retorno queda casi igual, solo que ahora `modules` y `filteredModules` 
@@ -414,19 +409,45 @@ function StudentDashboard() {
         {/* Recent Achievements */}
         <div className="space-y-4">
           <h2 className="text-xl font-bold text-gray-900">Últimos Logros</h2>
-          <div className="flex space-x-4 overflow-x-auto pb-2">
-            {achievements.map((achievement, index) => {
-              const IconComponent = achievement.icon
-              return (
-                <div key={index} className="flex-shrink-0 text-center">
-                  <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-2">
-                    <IconComponent className="w-8 h-8 text-amber-600" />
+          {achievements.length === 0 ? (
+            <div className="text-center py-8 bg-gradient-to-br from-teal-50 to-white border border-teal-100 rounded-xl shadow-sm">
+              <p className="text-base font-semibold text-teal-800 mb-2">¡Aún no tienes logros!</p>
+              <p className="text-sm text-teal-700 px-4 leading-relaxed max-w-md mx-auto">
+                Cada insignia refleja lo que aprendiste. Tu primer logro aparecerá aquí cuando completes tu primera actividad.
+              </p>
+              <div className="flex justify-center mt-6">
+                <div className="w-20 text-center animate-pulse">
+                  <div className="w-16 h-16 bg-amber-50 border border-amber-100 rounded-full flex items-center justify-center mb-2 shadow-sm">
+                    <Trophy className="w-8 h-8 text-amber-300" />
                   </div>
-                  <p className="text-xs text-gray-600 max-w-[64px] leading-tight">{achievement.name}</p>
                 </div>
-              )
-            })}
-          </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex space-x-4 overflow-x-auto pb-2">
+              {achievements.map((achievement: any) => {
+                // Intentar usar icono si viene del backend, sino usar Trophy por defecto
+                const IconComponent = Trophy
+                return (
+                  <div
+                    key={achievement.id}
+                    className="flex-shrink-0 flex flex-col items-center text-center"
+                  >
+                    <div className="w-16 h-16 bg-amber-50 border border-amber-200 rounded-full flex items-center justify-center mb-1 shadow-sm">
+                      <IconComponent className="w-8 h-8 text-amber-500" />
+                    </div>
+                    {/* Nombre: evitamos cortar palabras usando break-normal y aplicamos clamp a 2 líneas */}
+                    <p
+                      title={achievement.nombre}
+                      className="text-xs text-gray-700 max-w-[88px] leading-snug font-medium break-normal line-clamp-2"
+                    >
+                      {achievement.nombre}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </main>
     </div>
