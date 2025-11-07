@@ -405,7 +405,7 @@ export default function CursosPage() {
                                   return (
                                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${details.color}`}>
                                       <Icon className="w-4 h-4 mr-2" />
-                                      {details.plural}
+                                      {m.tipoEmergencia}
                                     </span>
                                   )
                                 })()}
