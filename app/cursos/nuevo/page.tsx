@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { HeartPulse, Users, Leaf } from "lucide-react";
 
 interface Docente {
   id: number;
@@ -187,6 +188,14 @@ export default function GestionCursosPage() {
     }
   };
 
+  // Mapeo para que coincida con los datos del backend ("Médica", "Social", etc.)
+  const categoryDetails: { [key: string]: { icon: any, color: string, plural: string } } = {
+    "MEDICA": { icon: HeartPulse, color: "bg-red-100 text-red-700", plural: "Médicas" },
+    "SOCIAL": { icon: Users, color: "bg-blue-100 text-blue-700", plural: "Sociales" },
+    "AMBIENTAL": { icon: Leaf, color: "bg-green-100 text-green-700", plural: "Ambientales" },
+  }
+  const defaultCategory = { icon: Users, color: "bg-gray-100 text-gray-800", plural: "Otros" }
+
   // Render paso 1
   if (step === 1) {
     return (
@@ -271,9 +280,21 @@ export default function GestionCursosPage() {
                       );
                     }}
                   />
-                  <div>
+                  <div className="flex-1">
                     <div className="font-semibold">{modulo.titulo}</div>
-                    <div className="text-sm text-gray-600">{modulo.descripcion}</div>
+                    <div className="mt-1 flex items-center gap-3">
+                      <div className="text-sm text-gray-600">{modulo.descripcion}</div>
+                      {(() => {
+                        const details = categoryDetails[modulo.tipoEmergencia] ?? defaultCategory
+                        const Icon = details.icon
+                        return (
+                          <span className={`inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium ${details.color}`}>
+                            <Icon className="w-4 h-4" />
+                            {modulo.tipoEmergencia}
+                          </span>
+                        )
+                      })()}
+                    </div>
                   </div>
                 </label>
               ))}

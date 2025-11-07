@@ -7,6 +7,7 @@ import Link from "next/link"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Pencil, Plus, Trash } from "lucide-react"
+import { HeartPulse, Users, Leaf } from "lucide-react"
 
 interface UsuarioBrief {
   id: number
@@ -31,6 +32,14 @@ interface Clase {
   alumnos: UsuarioBrief[]
   modulos: ModuloBrief[]
 }
+
+// Mapeo para que coincida con los datos del backend ("Médica", "Social", etc.)
+const categoryDetails: { [key: string]: { icon: any, color: string, plural: string } } = {
+  "MEDICA": { icon: HeartPulse, color: "bg-red-100 text-red-700", plural: "Médicas" },
+  "SOCIAL": { icon: Users, color: "bg-blue-100 text-blue-700", plural: "Sociales" },
+  "AMBIENTAL": { icon: Leaf, color: "bg-green-100 text-green-700", plural: "Ambientales" },
+}
+const defaultCategory = { icon: Users, color: "bg-gray-100 text-gray-800", plural: "Otros" }
 
 export default function CursosPage() {
   const { token, isAuthenticated, isLoading } = useAuth()
@@ -390,9 +399,16 @@ export default function CursosPage() {
                               </div>
 
                               <div className="ml-4 flex flex-col items-end gap-2">
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
-                                  Tipo: <span className="ml-1 font-semibold">{m.tipoEmergencia}</span>
-                                </span>
+                                {(() => {
+                                  const details = categoryDetails[m.tipoEmergencia] ?? defaultCategory
+                                  const Icon = details.icon
+                                  return (
+                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${details.color}`}>
+                                      <Icon className="w-4 h-4 mr-2" />
+                                      {details.plural}
+                                    </span>
+                                  )
+                                })()}
                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
                                   Nivel: <span className="ml-1 font-semibold">{m.nivelDificultad ?? "N/A"}</span>
                                 </span>
