@@ -288,10 +288,15 @@ export default function GestionCursosPage() {
                         const details = categoryDetails[modulo.tipoEmergencia] ?? defaultCategory
                         const Icon = details.icon
                         return (
-                          <span className={`inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium ${details.color}`}>
-                            <Icon className="w-4 h-4" />
-                            {modulo.tipoEmergencia}
-                          </span>
+                          <div className="flex flex-col items-start gap-2">
+                            <span className={`inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium ${details.color}`}>
+                              <Icon className="w-4 h-4" />
+                              {modulo.tipoEmergencia}
+                            </span>
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                              Nivel: <span className="ml-1 font-semibold">{modulo.nivelDificultad ?? "N/A"}</span>
+                            </span>
+                          </div>
                         )
                       })()}
                     </div>
