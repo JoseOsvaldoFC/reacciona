@@ -1,15 +1,18 @@
 "use client";
 import { useProgress } from '@/hooks/useProgress';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 export default function ProgressPage() {
   const { data, loading, error, filters, setFilters, refetch, emergencyTypes } = useProgress();
+  const router = useRouter();
   const [from, setFrom] = useState(filters.from || '');
   const [to, setTo] = useState(filters.to || '');
   const [tipoEmergencia, setTipoEmergencia] = useState<string>('ALL');
@@ -20,7 +23,17 @@ export default function ProgressPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <h1 className="text-3xl font-bold">Mi Progreso</h1>
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          onClick={() => router.back()}
+          className="flex items-center space-x-1 hover:bg-teal-50"
+        >
+          <ArrowLeft className="w-4 h-4 text-teal-700" />
+          <span className="text-sm font-medium text-teal-700">Volver</span>
+        </Button>
+        <h1 className="text-2xl sm:text-3xl font-bold">Mi Progreso</h1>
+      </div>
 
       <div className="flex flex-wrap gap-4 items-end">
         <div>

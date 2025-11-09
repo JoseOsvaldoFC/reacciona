@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { useRouter } from "next/navigation"
+import RoleProtectedRoute from "@/components/RoleProtectedRoute"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { LayoutDashboard } from "lucide-react"
@@ -23,7 +24,7 @@ const roles = [
   { value: 3, label: "Administrador" }
 ]
 
-export default function GestionUsuariosPage() {
+function GestionUsuariosPageInner() {
   const { user, token, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -40,7 +41,7 @@ export default function GestionUsuariosPage() {
       return;
     }
     if (user?.idRol !== 3) {
-      router.push("/");
+      router.push("/admin");
       return;
     }
   }, [isLoading, isAuthenticated, user, router]);
@@ -176,5 +177,13 @@ export default function GestionUsuariosPage() {
         </Card>
       </main>
     </div>
+  )
+}
+
+export default function GestionUsuariosPage() {
+  return (
+    <RoleProtectedRoute allowedRoles={[3]}>
+      <GestionUsuariosPageInner />
+    </RoleProtectedRoute>
   )
 }

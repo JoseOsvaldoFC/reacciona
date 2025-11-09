@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { useRouter } from "next/navigation"
+import RoleProtectedRoute from "@/components/RoleProtectedRoute"
 import Link from "next/link"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Pencil, Plus, Trash } from "lucide-react"
-import { HeartPulse, Users, Leaf } from "lucide-react"
+import { Pencil, Plus, Trash, ArrowLeft } from "lucide-react"
 
 interface UsuarioBrief {
   id: number
@@ -33,15 +33,7 @@ interface Clase {
   modulos: ModuloBrief[]
 }
 
-// Mapeo para que coincida con los datos del backend ("Médica", "Social", etc.)
-const categoryDetails: { [key: string]: { icon: any, color: string, plural: string } } = {
-  "MEDICA": { icon: HeartPulse, color: "bg-red-100 text-red-700", plural: "Médicas" },
-  "SOCIAL": { icon: Users, color: "bg-blue-100 text-blue-700", plural: "Sociales" },
-  "AMBIENTAL": { icon: Leaf, color: "bg-green-100 text-green-700", plural: "Ambientales" },
-}
-const defaultCategory = { icon: Users, color: "bg-gray-100 text-gray-800", plural: "Otros" }
-
-export default function CursosPage() {
+function CursosPageInner() {
   const { token, isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
 
@@ -83,6 +75,11 @@ export default function CursosPage() {
     if (isLoading) return
     if (!isAuthenticated) {
       router.push("/login")
+      return
+    }
+    // Sólo administrador
+    if ((window as any).CURRENT_USER_ROLE && (window as any).CURRENT_USER_ROLE !== 3) {
+      router.push('/admin')
       return
     }
 
@@ -239,63 +236,73 @@ export default function CursosPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="max-w-7xl mx-auto px-4 py-6">
+        <div className="mb-4">
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/admin')}
+            className="flex items-center space-x-1 hover:bg-teal-50"
+          >
+            <ArrowLeft className="w-4 h-4 text-teal-700" />
+            <span className="text-sm font-medium text-teal-700">Volver al Panel</span>
+          </Button>
+        </div>
         <Card className="border-0 shadow-md">
-          <CardHeader className="flex items-center justify-between">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle className="text-2xl text-gray-900">Gestión de Cursos</CardTitle>
+              <CardTitle className="text-xl sm:text-2xl text-gray-900 break-words">Gestión de Cursos</CardTitle>
             </div>
             <div>
               <Link href="/cursos/nuevo" passHref>
-                <Button className="bg-teal-600 hover:bg-teal-700 text-white">Crear Curso</Button>
+                <Button className="bg-teal-600 hover:bg-teal-700 text-white w-full sm:w-auto text-sm sm:text-base">Crear Curso</Button>
               </Link>
             </div>
           </CardHeader>
 
           <CardContent>
-            {error && <div className="text-red-600 mb-4">{error}</div>}
+            {error && <div className="text-xs sm:text-sm text-red-600 mb-4 break-words">{error}</div>}
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
               <table className="min-w-full bg-white rounded-lg shadow">
                 <thead>
                   <tr>
-                    <th className="px-4 py-2 text-left text-gray-700">Nombre de la Clase</th>
-                    <th className="px-4 py-2 text-left text-gray-700">Descripción</th>
-                    <th className="px-4 py-2 text-left text-gray-700">Docente</th>
-                    <th className="px-4 py-2 text-center text-gray-700">Alumnos</th>
-                    <th className="px-4 py-2 text-center text-gray-700">Módulos</th>
-                    <th className="px-4 py-2 text-center text-gray-700">Acciones con los Alumnos</th>
+                    <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm text-gray-700 min-w-[120px]">Nombre de la Clase</th>
+                    <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm text-gray-700 min-w-[150px]">Descripción</th>
+                    <th className="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm text-gray-700 min-w-[120px]">Docente</th>
+                    <th className="px-2 sm:px-4 py-2 text-center text-xs sm:text-sm text-gray-700 min-w-[80px]">Alumnos</th>
+                    <th className="px-2 sm:px-4 py-2 text-center text-xs sm:text-sm text-gray-700 min-w-[80px]">Módulos</th>
+                    <th className="px-2 sm:px-4 py-2 text-center text-xs sm:text-sm text-gray-700 min-w-[140px]">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {clases.map((clase) => (
                     <tr key={clase.id} className="border-b hover:bg-gray-50">
-                      <td className="px-4 py-2">{clase.nombreClase}</td>
-                      <td className="px-4 py-2">{clase.descripcion}</td>
-                      <td className="px-4 py-2">{clase.nombreDocente}</td>
-                      <td className="px-4 py-2 text-center">
+                      <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm break-words">{clase.nombreClase}</td>
+                      <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm break-words max-w-[200px] truncate">{clase.descripcion}</td>
+                      <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm break-words">{clase.nombreDocente}</td>
+                      <td className="px-2 sm:px-4 py-2 text-center">
                         <div className="flex gap-2 justify-center">
                           <button
                             onClick={() => openAlumnosModal(clase.alumnos)}
-                            className="text-sm text-teal-600 hover:underline"
+                            className="text-xs sm:text-sm text-teal-600 hover:underline whitespace-nowrap"
                             aria-label={`Ver ${clase.alumnos?.length ?? 0} módulos`}
                           >
                             {clase.alumnos?.length ?? 0}
                           </button>
                         </div>
                       </td>
-                      <td className="px-4 py-2 text-center">
+                      <td className="px-2 sm:px-4 py-2 text-center">
                         <div className="flex gap-2 justify-center">
                           <button
                             onClick={() => openModulosModal(clase.modulos)}
-                            className="text-sm text-teal-600 hover:underline"
+                            className="text-xs sm:text-sm text-teal-600 hover:underline whitespace-nowrap"
                             aria-label={`Ver ${clase.modulos?.length ?? 0} módulos`}
                           >
                             {clase.modulos?.length ?? 0}
                           </button>
                         </div>
                       </td>
-                      <td className="px-4 py-2 text-center">
-                        <div className="flex gap-2 justify-center">
+                      <td className="px-2 sm:px-4 py-2 text-center">
+                        <div className="flex gap-2 justify-center flex-wrap">
                           <button
                             onClick={() => openAddModal(clase)}
                             className="inline-flex items-center gap-3 px-3 py-1 rounded-full bg-teal-50 text-teal-700 hover:bg-teal-100 focus:outline-none"
@@ -399,16 +406,9 @@ export default function CursosPage() {
                               </div>
 
                               <div className="ml-4 flex flex-col items-end gap-2">
-                                {(() => {
-                                  const details = categoryDetails[m.tipoEmergencia] ?? defaultCategory
-                                  const Icon = details.icon
-                                  return (
-                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${details.color}`}>
-                                      <Icon className="w-4 h-4 mr-2" />
-                                      {m.tipoEmergencia}
-                                    </span>
-                                  )
-                                })()}
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+                                  Tipo: <span className="ml-1 font-semibold">{m.tipoEmergencia}</span>
+                                </span>
                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
                                   Nivel: <span className="ml-1 font-semibold">{m.nivelDificultad ?? "N/A"}</span>
                                 </span>
@@ -522,5 +522,13 @@ export default function CursosPage() {
         </Card>
       </main>
     </div>
+  )
+}
+
+export default function CursosPage() {
+  return (
+    <RoleProtectedRoute allowedRoles={[3]}>
+      <CursosPageInner />
+    </RoleProtectedRoute>
   )
 }

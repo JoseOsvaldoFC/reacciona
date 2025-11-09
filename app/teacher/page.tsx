@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Users, TrendingUp, AlertTriangle, ChevronDown, Eye, RefreshCw, Filter, Calendar, Download, HelpCircle } from "lucide-react"
+import { Users, TrendingUp, AlertTriangle, ChevronDown, Eye, RefreshCw, Filter, Calendar, Download, HelpCircle, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
@@ -40,12 +40,17 @@ function TeacherDashboard() {
     exportGroupData
   } = useMonitoring(selectedClass ? parseInt(selectedClass) : undefined);
 
-  // Seleccionar la primera clase disponible automáticamente
+  // Seleccionar la primera clase disponible automáticamente, o "Todos" para admin
   useEffect(() => {
-    if (classes.length > 0 && !selectedClass) {
-      setSelectedClass(classes[0].id.toString());
+    if (!selectedClass) {
+      if (classes.length > 0) {
+        setSelectedClass(classes[0].id.toString());
+      } else if (user?.idRol === 3) {
+        // Si es admin y no hay clases, seleccionar "Todos" (-1)
+        setSelectedClass("-1");
+      }
     }
-  }, [classes, selectedClass]);
+  }, [classes, selectedClass, user]);
 
   const handleViewStudentDetails = (studentId: number) => {
     router.push(`/monitor-progress/student/${studentId}`);
@@ -117,11 +122,71 @@ function TeacherDashboard() {
     );
   }
 
-  // Si no hay clases asignadas
+  // Si no hay clases y ES docente (no admin) mostrar mensaje; admin ve mensaje distinto global
   if (!classesLoading && classes.length === 0) {
+    if (user?.idRol === 3) {
+      return (
+        <div className="min-h-screen bg-gray-50">
+          <header className="bg-white shadow-sm border-b px-4 py-3">
+            <div className="flex items-center justify-between max-w-7xl mx-auto">
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => router.push('/admin')}
+                  className="flex items-center space-x-1 hover:bg-teal-50"
+                >
+                  <ArrowLeft className="w-4 h-4 text-teal-700" />
+                  <span className="text-sm font-medium text-teal-700">Volver</span>
+                </Button>
+                <span className="text-gray-500 text-sm hidden sm:inline">Monitoreo Global</span>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-2 p-2 hover:bg-teal-50">
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src="/placeholder.svg?height=32&width=32" />
+                      <AvatarFallback className="bg-teal-100 text-teal-700">
+                        {user?.nombre ? user.nombre.split(' ').map(n => n[0]).join('').toUpperCase() : 'AD'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="hidden sm:block text-left">
+                      <p className="text-sm font-medium text-gray-900">{user?.nombre}</p>
+                      <p className="text-xs text-gray-500">Administrador</p>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-gray-500" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => router.push('/profile')} className="cursor-pointer">Mi Perfil</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push('/usuarios')} className="cursor-pointer">Modificar Roles</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push('/cursos')} className="cursor-pointer">Gestión Cursos</DropdownMenuItem>
+                  <DropdownMenuItem onClick={logout} className="cursor-pointer">Cerrar Sesión</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </header>
+          <main className="max-w-7xl mx-auto px-4 py-6">
+            <Card className="border-0 shadow-md">
+              <CardContent className="pt-6 text-center">
+                <Users className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay clases en el sistema</h3>
+                <p className="text-gray-600 mb-4">Crea la primera clase desde Gestión de Cursos.</p>
+                <Button
+                  variant="outline"
+                  onClick={() => router.push('/cursos/nuevo')}
+                  className="hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300"
+                >
+                  Crear Clase
+                </Button>
+              </CardContent>
+            </Card>
+          </main>
+        </div>
+      )
+    }
+    // Docente sin clases
     return (
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
         <header className="bg-white shadow-sm border-b px-4 py-3">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             <div className="flex items-center space-x-2">
@@ -131,7 +196,6 @@ function TeacherDashboard() {
               <h1 className="text-xl font-bold text-gray-900">Reacciona</h1>
               <span className="text-gray-500 text-sm hidden sm:inline">Panel de Docente</span>
             </div>
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center space-x-2 p-2 hover:bg-teal-50">
@@ -142,54 +206,33 @@ function TeacherDashboard() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden sm:block text-left">
-                    <p className="text-sm font-medium text-gray-900">
-                      {user?.nombre ? user.nombre : 'Profesor'}
-                    </p>
+                    <p className="text-sm font-medium text-gray-900">{user?.nombre || 'Profesor'}</p>
                     <p className="text-xs text-gray-500">Docente</p>
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-500" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem 
-                  onClick={() => router.push('/profile')}
-                  className="hover:bg-teal-100 hover:text-teal-700 focus:bg-teal-100 focus:text-teal-700 cursor-pointer"
-                >
-                  Mi Perfil
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={logout}
-                  className="hover:bg-teal-100 hover:text-teal-700 focus:bg-teal-100 focus:text-teal-700 cursor-pointer"
-                >
-                  Cerrar Sesión
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push('/profile')} className="cursor-pointer">Mi Perfil</DropdownMenuItem>
+                <DropdownMenuItem onClick={logout} className="cursor-pointer">Cerrar Sesión</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </header>
-
-        {/* No Classes Message */}
         <main className="max-w-7xl mx-auto px-4 py-6">
           <Card className="border-0 shadow-md">
             <CardContent className="pt-6 text-center">
               <Users className="w-16 h-16 mx-auto text-gray-400 mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No tienes clases asignadas</h3>
-              <p className="text-gray-600 mb-4">
-                Contacta al administrador para que te asigne clases o crea una nueva clase.
-              </p>
-              <Button 
-                variant="outline" 
-                onClick={() => window.location.reload()}
-                className="hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Actualizar
+              <p className="text-gray-600 mb-4">Contacta al administrador para que te asigne clases o crea una nueva clase.</p>
+              <Button variant="outline" onClick={() => window.location.reload()} className="hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300">
+                <RefreshCw className="w-4 h-4 mr-2" />Actualizar
               </Button>
             </CardContent>
           </Card>
         </main>
       </div>
-    );
+    )
   }
 
   return (
@@ -198,11 +241,24 @@ function TeacherDashboard() {
       <header className="bg-white shadow-sm border-b px-4 py-3">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">R</span>
-            </div>
-            <h1 className="text-xl font-bold text-gray-900">Reacciona</h1>
-            <span className="text-gray-500 text-sm hidden sm:inline">Panel de Docente</span>
+            {user?.idRol === 3 ? (
+              <Button
+                variant="ghost"
+                onClick={() => router.push('/admin')}
+                className="flex items-center space-x-1 hover:bg-teal-50"
+              >
+                <ArrowLeft className="w-4 h-4 text-teal-700" />
+                <span className="text-sm font-medium text-teal-700">Volver</span>
+              </Button>
+            ) : (
+              <>
+                <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">R</span>
+                </div>
+                <h1 className="text-xl font-bold text-gray-900">Reacciona</h1>
+                <span className="text-gray-500 text-sm hidden sm:inline">Panel de Docente</span>
+              </>
+            )}
           </div>
 
           <div className="flex items-center space-x-2">
@@ -222,31 +278,42 @@ function TeacherDashboard() {
                   <Avatar className="w-8 h-8">
                     <AvatarImage src="/placeholder.svg?height=32&width=32" />
                     <AvatarFallback className="bg-teal-100 text-teal-700">
-                      {user?.nombre ? user.nombre.split(' ').map(n => n[0]).join('').toUpperCase() : 'PR'}
+                      {user?.nombre ? user.nombre.split(' ').map(n => n[0]).join('').toUpperCase() : (user?.idRol === 3 ? 'AD' : 'PR')}
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden sm:block text-left">
                     <p className="text-sm font-medium text-gray-900">
-                      {user?.nombre ? user.nombre : 'Profesor'}
+                      {user?.nombre ? user.nombre : (user?.idRol === 3 ? 'Administrador' : 'Profesor')}
                     </p>
-                    <p className="text-xs text-gray-500">Docente</p>
+                    <p className="text-xs text-gray-500">{user?.idRol === 3 ? 'Administrador' : 'Docente'}</p>
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-500" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem 
-                  onClick={() => router.push('/profile')}
-                  className="hover:bg-teal-100 hover:text-teal-700 focus:bg-teal-100 focus:text-teal-700 cursor-pointer"
-                >
-                  Mi Perfil
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={logout}
-                  className="hover:bg-teal-100 hover:text-teal-700 focus:bg-teal-100 focus:text-teal-700 cursor-pointer"
-                >
-                  Cerrar Sesión
-                </DropdownMenuItem>
+                {user?.idRol === 3 ? (
+                  <>
+                    <DropdownMenuItem onClick={() => router.push('/profile')} className="cursor-pointer">Mi Perfil</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push('/usuarios')} className="cursor-pointer">Modificar Roles</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push('/cursos')} className="cursor-pointer">Gestión Cursos</DropdownMenuItem>
+                    <DropdownMenuItem onClick={logout} className="cursor-pointer">Cerrar Sesión</DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuItem 
+                      onClick={() => router.push('/profile')}
+                      className="hover:bg-teal-100 hover:text-teal-700 focus:bg-teal-100 focus:text-teal-700 cursor-pointer"
+                    >
+                      Mi Perfil
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={logout}
+                      className="hover:bg-teal-100 hover:text-teal-700 focus:bg-teal-100 focus:text-teal-700 cursor-pointer"
+                    >
+                      Cerrar Sesión
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -257,16 +324,22 @@ function TeacherDashboard() {
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {/* Class Selector and Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center space-x-4">
-            <h2 className="text-xl font-bold text-gray-900">Monitoreo de Estudiantes</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 break-words">Monitoreo de Estudiantes</h2>
             {classesLoading ? (
-              <div className="w-48 h-10 bg-gray-200 animate-pulse rounded"></div>
-            ) : classes.length > 0 ? (
+              <div className="w-full sm:w-48 h-10 bg-gray-200 animate-pulse rounded"></div>
+            ) : classes.length > 0 || user?.idRol === 3 ? (
               <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="Seleccionar clase" />
                 </SelectTrigger>
                 <SelectContent>
+                  {/* Opción "Todos" solo para admin */}
+                  {user?.idRol === 3 && (
+                    <SelectItem value="-1">
+                      Todos los estudiantes
+                    </SelectItem>
+                  )}
                   {classes.map((cls) => (
                     <SelectItem key={cls.id} value={cls.id.toString()}>
                       {cls.name}
@@ -275,7 +348,11 @@ function TeacherDashboard() {
                 </SelectContent>
               </Select>
             ) : (
-              <div className="text-sm text-gray-500">No tienes clases asignadas</div>
+              user?.idRol === 3 ? (
+                <div className="text-xs sm:text-sm text-gray-500">No hay clases todavía</div>
+              ) : (
+                <div className="text-xs sm:text-sm text-gray-500">No tienes clases asignadas</div>
+              )
             )}
             {loading && (
               <RefreshCw className="w-4 h-4 animate-spin text-teal-600" />
@@ -287,19 +364,19 @@ function TeacherDashboard() {
               onClick={refreshData}
               variant="outline"
               disabled={loading}
-              className="hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300"
+              className="hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300 text-xs sm:text-sm"
             >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Actualizar
+              <RefreshCw className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Actualizar</span>
             </Button>
             <Button 
               onClick={handleExportData}
               variant="outline"
               disabled={loading || !students.length}
-              className="hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300"
+              className="hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300 text-xs sm:text-sm"
             >
-              <Download className="w-4 h-4 mr-2" />
-              Exportar CSV
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Exportar CSV</span>
             </Button>
           </div>
         </div>
@@ -307,7 +384,7 @@ function TeacherDashboard() {
         {(error || classesError) && (
           <Card className="border-red-200 bg-red-50">
             <CardContent className="pt-6">
-              <p className="text-red-600">{error || classesError}</p>
+              <p className="text-xs sm:text-sm text-red-600 break-words">{error || classesError}</p>
             </CardContent>
           </Card>
         )}
@@ -316,8 +393,8 @@ function TeacherDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="border-0 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Progreso Promedio de la Clase</CardTitle>
-              <TrendingUp className="h-4 w-4 text-teal-600" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 break-words">Progreso Promedio de la Clase</CardTitle>
+              <TrendingUp className="h-4 w-4 text-teal-600 flex-shrink-0" />
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-4">
@@ -351,14 +428,14 @@ function TeacherDashboard() {
 
           <Card className="border-0 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Estudiantes Activos</CardTitle>
-              <Users className="h-4 w-4 text-teal-600" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 break-words">Estudiantes Activos</CardTitle>
+              <Users className="h-4 w-4 text-teal-600 flex-shrink-0" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-xl sm:text-2xl font-bold text-gray-900 break-words">
                 {groupStats?.activeStudents || 0} / {groupStats?.totalStudents || 0}
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 break-words">
                 {groupStats?.totalStudents ? 
                   Math.round((groupStats.activeStudents / groupStats.totalStudents) * 100) : 0}% de
                 participación
@@ -368,14 +445,14 @@ function TeacherDashboard() {
 
           <Card className="border-0 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Módulo con Mayor Dificultad</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 break-words">Módulo con Mayor Dificultad</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0" />
             </CardHeader>
             <CardContent>
-              <div className="text-lg font-bold text-gray-900">
+              <div className="text-base sm:text-lg font-bold text-gray-900 break-words line-clamp-2">
                 {groupStats?.mostDifficultModule?.titulo || 'No disponible'}
               </div>
-              <p className="text-xs text-gray-500">Requiere atención adicional</p>
+              <p className="text-xs text-gray-500 break-words">Requiere atención adicional</p>
             </CardContent>
           </Card>
         </div>
@@ -383,18 +460,18 @@ function TeacherDashboard() {
         {/* Student Progress Table */}
         <Card className="border-0 shadow-md">
           <CardHeader>
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
               <div>
-                <CardTitle className="text-lg text-gray-900">Progreso de Estudiantes</CardTitle>
-                <CardDescription>Monitoreo detallado del progreso de cada estudiante</CardDescription>
+                <CardTitle className="text-base sm:text-lg text-gray-900 break-words">Progreso de Estudiantes</CardTitle>
+                <CardDescription className="text-xs sm:text-sm break-words">Monitoreo detallado del progreso de cada estudiante</CardDescription>
               </div>
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-2 items-center flex-wrap">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button 
                       variant="outline" 
                       size="sm"
-                      className="hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300"
+                      className="hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300 text-xs sm:text-sm"
                     >
                       <Filter className="w-4 h-4 mr-2" />
                       Filtros Avanzados
@@ -464,15 +541,15 @@ function TeacherDashboard() {
                 No se encontraron estudiantes para este grupo.
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[250px]">
+                      <TableHead className="min-w-[150px]">
                         <Button 
                           variant="ghost" 
                           onClick={() => handleSortChange('name')}
-                          className="p-0 h-auto font-medium"
+                          className="p-0 h-auto font-medium text-xs sm:text-sm whitespace-nowrap"
                         >
                           Estudiante
                           {filters.sortBy === 'name' && (
@@ -480,11 +557,11 @@ function TeacherDashboard() {
                           )}
                         </Button>
                       </TableHead>
-                      <TableHead>
+                      <TableHead className="min-w-[110px]">
                         <Button 
                           variant="ghost" 
                           onClick={() => handleSortChange('lastActivity')}
-                          className="p-0 h-auto font-medium"
+                          className="p-0 h-auto font-medium text-xs sm:text-sm whitespace-nowrap"
                         >
                           Última Actividad
                           {filters.sortBy === 'lastActivity' && (
@@ -492,11 +569,11 @@ function TeacherDashboard() {
                           )}
                         </Button>
                       </TableHead>
-                      <TableHead className="w-[200px]">
+                      <TableHead className="min-w-[140px]">
                         <Button 
                           variant="ghost" 
                           onClick={() => handleSortChange('progress')}
-                          className="p-0 h-auto font-medium"
+                          className="p-0 h-auto font-medium text-xs sm:text-sm whitespace-nowrap"
                         >
                           Progreso Total
                           {filters.sortBy === 'progress' && (
@@ -504,44 +581,44 @@ function TeacherDashboard() {
                           )}
                         </Button>
                       </TableHead>
-                      <TableHead>
+                      <TableHead className="min-w-[100px]">
                         <Button 
                           variant="ghost" 
                           onClick={() => handleSortChange('score')}
-                          className="p-0 h-auto font-medium"
+                          className="p-0 h-auto font-medium text-xs sm:text-sm whitespace-nowrap"
                         >
-                          Puntaje Total
+                          Puntaje
                           {filters.sortBy === 'score' && (
                             <span className="ml-1">{filters.sortOrder === 'asc' ? '↑' : '↓'}</span>
                           )}
                         </Button>
                       </TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
+                      <TableHead className="min-w-[90px]">Estado</TableHead>
+                      <TableHead className="text-right min-w-[120px]">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {students.map((student) => (
                       <TableRow key={student.id}>
                         <TableCell className="font-medium">
-                          <div className="flex items-center space-x-3">
-                            <Avatar className="w-8 h-8">
+                          <div className="flex items-center space-x-2 sm:space-x-3">
+                            <Avatar className="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0">
                               <AvatarImage src="/placeholder.svg?height=32&width=32" />
                               <AvatarFallback className="bg-gray-100 text-gray-600 text-xs">
                                 {getStudentInitials(student.nombre)}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-sm">{student.nombre}</span>
+                            <span className="text-xs sm:text-sm truncate max-w-[120px] sm:max-w-[180px]">{student.nombre}</span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className={`text-sm ${getActivityStatus(student.lastActivity)}`}>
+                          <span className={`text-xs sm:text-sm ${getActivityStatus(student.lastActivity)} whitespace-nowrap`}>
                             {student.lastActivity}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-sm">
+                          <div className="space-y-1 min-w-[100px]">
+                            <div className="flex justify-between text-xs sm:text-sm">
                               <span className={getProgressColor(student.totalProgress)}>{student.totalProgress}%</span>
                             </div>
                             <Progress value={student.totalProgress} className="h-2" />
@@ -550,7 +627,7 @@ function TeacherDashboard() {
                         <TableCell>
                           <Badge
                             variant="secondary"
-                            className={`${
+                            className={`text-xs whitespace-nowrap ${
                               student.averageScore >= 90
                                 ? "bg-green-100 text-green-700"
                                 : student.averageScore >= 80
@@ -564,7 +641,7 @@ function TeacherDashboard() {
                         <TableCell>
                           <Badge
                             variant="secondary"
-                            className={getStatusBadgeColor(student.status)}
+                            className={`text-xs whitespace-nowrap ${getStatusBadgeColor(student.status)}`}
                           >
                             {student.status === 'active' ? 'Activo' : 
                              student.status === 'inactive' ? 'Inactivo' : 
@@ -575,11 +652,12 @@ function TeacherDashboard() {
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="text-teal-600 hover:text-teal-700 hover:bg-teal-50"
+                            className="text-teal-600 hover:text-teal-700 hover:bg-teal-50 text-xs sm:text-sm whitespace-nowrap"
                             onClick={() => handleViewStudentDetails(student.id)}
                           >
-                            <Eye className="w-4 h-4 mr-1" />
-                            Ver Detalles
+                            <Eye className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                            <span className="hidden sm:inline">Ver Detalles</span>
+                            <span className="sm:hidden">Ver</span>
                           </Button>
                         </TableCell>
                       </TableRow>

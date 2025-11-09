@@ -73,16 +73,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const redirectUserBasedOnRole = (user: User) => {
         // Redirigir según el rol del usuario
         if (user.idRol === 1) {
-            // Estudiante - ir a la página principal del estudiante
+            // Estudiante
             window.location.href = '/';
         } else if (user.idRol === 2) {
-            // Docente/Profesor - ir al dashboard del profesor
+            // Docente/Profesor
             window.location.href = '/teacher';
         } else if (user.idRol === 3) {
-            // Administrador - ir a la página principal (puede acceder a todo)
-            window.location.href = '/';
+            // Administrador => Dashboard exclusivo
+            window.location.href = '/admin';
         } else {
-            // Rol desconocido - ir a la página principal por defecto
+            // Rol desconocido
             window.location.href = '/';
         }
     };

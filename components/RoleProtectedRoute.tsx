@@ -2,8 +2,8 @@
 
 import { useAuth } from "@/context/AuthContext"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
-import { RefreshCw } from "lucide-react"
+import { useEffect, useState } from "react"
+import { RefreshCw, ShieldAlert } from "lucide-react"
 
 interface RoleProtectedRouteProps {
   children: React.ReactNode
@@ -17,6 +17,7 @@ export default function RoleProtectedRoute({
   redirectTo 
 }: RoleProtectedRouteProps) {
   const { user, isLoading, isAuthenticated } = useAuth()
+  const [denied, setDenied] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -34,25 +35,24 @@ export default function RoleProtectedRoute({
 
     // Si el usuario no tiene un rol permitido
     if (!allowedRoles.includes(userRole)) {
-      // Redirigir según el rol del usuario
-      if (redirectTo) {
-        router.push(redirectTo)
-      } else {
-        // Redirección automática según rol
-        if (userRole === 1) {
-          // Estudiante -> Dashboard de estudiante
-          router.push('/')
-        } else if (userRole === 2) {
-          // Docente -> Dashboard de profesor
-          router.push('/teacher')
-        } else if (userRole === 3) {
-          // Administrador -> Dashboard de admin (o principal)
-          router.push('/')
+      // Mostrar estado de acceso denegado por 1 segundo antes de redirigir
+      setDenied(true)
+      const timeout = setTimeout(() => {
+        if (redirectTo) {
+          router.push(redirectTo)
         } else {
-          // Rol desconocido -> Login
-          router.push('/login')
+          if (userRole === 1) {
+            router.push('/')
+          } else if (userRole === 2) {
+            router.push('/teacher')
+          } else if (userRole === 3) {
+            router.push('/admin')
+          } else {
+            router.push('/login')
+          }
         }
-      }
+      }, 1000)
+      return () => clearTimeout(timeout)
     }
   }, [user, isLoading, isAuthenticated, allowedRoles, redirectTo, router])
 
@@ -76,7 +76,17 @@ export default function RoleProtectedRoute({
 
   const userRole = user.idRol || (user as any).rol?.idRol
   if (!allowedRoles.includes(userRole)) {
-    return null
+    return denied ? (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center animate-fade-in">
+          <div className="w-16 h-16 rounded-full bg-red-50 border border-red-200 flex items-center justify-center mx-auto mb-4 shadow-sm">
+            <ShieldAlert className="w-8 h-8 text-red-500" />
+          </div>
+          <h2 className="text-lg font-semibold text-red-700 mb-1">Acceso denegado</h2>
+          <p className="text-sm text-red-600">No tienes permisos para esta sección. Redirigiendo...</p>
+        </div>
+      </div>
+    ) : null
   }
 
   // Si todo está bien, mostrar el contenido

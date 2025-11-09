@@ -8,7 +8,7 @@ import type {
 } from '@/types/student-monitoring';
 
 export function useMonitoring(groupId?: number) {
-  const { token, isLoading: authLoading } = useAuth();
+  const { token, isLoading: authLoading, user } = useAuth();
   const [groupStats, setGroupStats] = useState<GroupStatistics | null>(null);
   const [students, setStudents] = useState<StudentProgressSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,12 @@ export function useMonitoring(groupId?: number) {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/monitoring/group/${id}/statistics`, {
+      // Si id es -1, es la opción "Todos" (solo para admin)
+      const endpoint = id === -1 
+        ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/monitoring/all-students/statistics`
+        : `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/monitoring/group/${id}/statistics`;
+      
+      const response = await fetch(endpoint, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -59,7 +64,13 @@ export function useMonitoring(groupId?: number) {
       if (activeFilters.sortOrder) params.append('sortOrder', activeFilters.sortOrder);
       
       const queryString = params.toString();
-      const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/monitoring/group/${id}/students${queryString ? `?${queryString}` : ''}`;
+      
+      // Si id es -1, es la opción "Todos" (solo para admin)
+      const endpoint = id === -1
+        ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/monitoring/all-students`
+        : `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/monitoring/group/${id}/students`;
+      
+      const url = `${endpoint}${queryString ? `?${queryString}` : ''}`;
       
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
