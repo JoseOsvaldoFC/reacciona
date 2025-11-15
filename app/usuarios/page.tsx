@@ -91,7 +91,7 @@ function GestionUsuariosPageInner() {
       if (!response.ok) {
         throw new Error("No se pudo actualizar los roles");
       }
-      router.push('/');
+      router.push('/admin');
     } catch (e: any) {
       setError(e.message || "Error al actualizar los roles");
     } finally {
