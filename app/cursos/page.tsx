@@ -56,6 +56,13 @@ function CursosPageInner() {
   const [selectedModulos, setSelectedModulos] = useState<ModuloBrief[] | null>(null)
   const [modulosModalOpen, setModulosModalOpen] = useState(false)
   
+  const [modulesAddOpen, setModulesAddOpen] = useState(false)
+  const [claseForModules, setClaseForModules] = useState<Clase | null>(null)
+  const [modulesAvailable, setModulesAvailable] = useState<ModuloBrief[]>([])
+  const [selectedModuleIds, setSelectedModuleIds] = useState<number[]>([])
+  const [modulesLoading, setModulesLoading] = useState(false)
+  const [modulesError, setModulesError] = useState<string | null>(null)
+
   // Modal para eliminar alumno de una clase
   const [removeModalOpen, setRemoveModalOpen] = useState(false)
   const [claseToRemove, setClaseToRemove] = useState<Clase | null>(null)
@@ -71,14 +78,75 @@ function CursosPageInner() {
   const [availableLoading, setAvailableLoading] = useState(false)
   const [availableError, setAvailableError] = useState<string | null>(null)
   
-  const openModulosModal = (modulos: ModuloBrief[] | undefined) => {
-    setSelectedModulos(modulos ?? [])
+  const openModulosModal = (clase?: Clase) => {
+    // abre modal de lectura con los módulos (puede estar vacío)
+    setSelectedModulos(clase?.modulos ?? [])
+    setClaseForModules(clase ?? null)
     setModulosModalOpen(true)
   }
   const closeModulosModal = () => {
     setModulosModalOpen(false)
     setSelectedModulos(null)
   }
+
+
+const openModulesAddModal = async (clase: Clase | null) => {
+    if (!clase) return
+    setClaseForModules(clase)
+    setModulesAvailable([])
+    setSelectedModuleIds([])
+    setModulesError(null)
+    setModulesAddOpen(true)
+    if (!token) return
+    setModulesLoading(true)
+    try {
+      const res = await fetch("http://localhost:8080/api/modulos", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!res.ok) throw new Error(`Error ${res.status}`)
+      const data: ModuloBrief[] = await res.json()
+      setModulesAvailable(data)
+    } catch (err: any) {
+      setModulesError(err?.message || "No se pudieron cargar los módulos")
+    } finally {
+      setModulesLoading(false)
+    }
+  }
+  const closeModulesAddModal = () => {
+    setModulesAddOpen(false)
+    setClaseForModules(null)
+    setModulesAvailable([])
+    setSelectedModuleIds([])
+    setModulesError(null)
+  }
+  const toggleSelectModule = (id: number) => {
+    setSelectedModuleIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+  const handleAssignModulesToClass = async () => {
+    if (!token || !claseForModules) return
+    if (selectedModuleIds.length === 0) return closeModulesAddModal()
+    setModulesLoading(true)
+    try {
+      const res = await fetch(`http://localhost:8080/api/clases/${claseForModules.id}/modulos`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(selectedModuleIds)
+      })
+      if (!res.ok) throw new Error(`Error ${res.status}`)
+      const added = modulesAvailable.filter(m => selectedModuleIds.includes(m.id))
+      setClases(prev => prev.map(c => c.id === claseForModules.id ? { ...c, modulos: [...(c.modulos ?? []), ...added] } : c))
+      closeModulesAddModal()
+      closeModulosModal()
+    } catch (err: any) {
+      setModulesError(err?.message || "Error al asignar módulos")
+    } finally {
+      setModulesLoading(false)
+    }
+  }
+
 
   useEffect(() => {
     if (isLoading) return
@@ -302,7 +370,7 @@ function CursosPageInner() {
                       <td className="px-2 sm:px-4 py-2 text-center">
                         <div className="flex gap-2 justify-center">
                           <button
-                            onClick={() => openModulosModal(clase.modulos)}
+                            onClick={() => openModulosModal(clase)}
                             className="text-xs sm:text-sm text-teal-600 hover:underline whitespace-nowrap"
                             aria-label={`Ver ${clase.modulos?.length ?? 0} módulos`}
                           >
@@ -434,7 +502,18 @@ function CursosPageInner() {
                         ))}
                       </ul>
                     ) : (
-                      <div className="text-gray-600">No hay módulos en esta clase.</div>
+                      <div className="flex justify-center">
+                        <button
+                          onClick={() => {
+                            // abrir modal de asignación (carga módulos disponibles)
+                            closeModulosModal()
+                            openModulesAddModal(claseForModules)
+                          }}
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-red-50 text-red-700 hover:bg-red-100 focus:outline-none"
+                        >
+                          <span className="font-medium">0 módulos - Agregar</span>
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -529,6 +608,68 @@ function CursosPageInner() {
                     <Button variant="outline" onClick={closeAddModal} disabled={addLoading}>Cancelar</Button>
                     <Button onClick={handleAssignStudents} disabled={addLoading || selectedStudentIds.length === 0}>
                       {addLoading ? "Agregando..." : "Agregar"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal: asignar módulos a la clase (UI similar al paso 2 de nuevo/page.tsx) */}
+            {modulesAddOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
+                <div className="fixed inset-0 bg-black/40" onClick={closeModulesAddModal} />
+                <div className="relative z-10 w-full max-w-2xl mx-4 bg-white rounded-lg shadow-lg">
+                  <div className="flex items-center justify-between px-4 py-3 border-b">
+                    <h3 className="text-lg font-medium">Seleccione módulos para la clase</h3>
+                    <button onClick={closeModulesAddModal} className="text-gray-600 hover:text-gray-900" aria-label="Cerrar">✕</button>
+                  </div>
+                  <div className="p-4 max-h-96 overflow-auto">
+                    {modulesLoading ? (
+                      <div className="text-gray-600">Cargando módulos...</div>
+                    ) : modulesError ? (
+                      <div className="text-red-600">{modulesError}</div>
+                    ) : modulesAvailable.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {modulesAvailable.map(modulo => {
+                          const selected = selectedModuleIds.includes(modulo.id)
+                          const details = categoryDetails[modulo.tipoEmergencia] ?? defaultCategory
+                          const Icon = details.icon
+                          return (
+                            <label key={modulo.id} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer ${selected ? "bg-teal-50 border-teal-300" : "bg-white hover:bg-gray-50"}`}>
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                readOnly
+                                className="mt-1"
+                                onClick={() => toggleSelectModule(modulo.id)}
+                              />
+                              <div className="flex-1 text-left">
+                                <div className="font-medium text-sm">{modulo.titulo}</div>
+                                <div className="text-xs text-gray-500">{modulo.descripcion}</div>
+                                {modulo.tipoEmergencia && (
+                                  <div className="mt-2 flex items-center gap-2">
+                                    <span className={`inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium ${details.color}`}>
+                                      <Icon className="w-4 h-4" />
+                                      {modulo.tipoEmergencia}
+                                    </span>
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800 ml-2">
+                                      Nivel: <span className="ml-1 font-semibold">{modulo.nivelDificultad ?? "N/A"}</span>
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-gray-600">No hay módulos disponibles.</div>
+                    )}
+                  </div>
+                  <div className="px-4 py-3 border-t flex justify-end gap-2">
+                    <Button variant="outline" onClick={closeModulesAddModal} disabled={modulesLoading}>Cancelar</Button>
+                    <Button onClick={handleAssignModulesToClass} disabled={modulesLoading || selectedModuleIds.length === 0}>
+                      {modulesLoading ? "Agregando..." : "Agregar módulos"}
                     </Button>
                   </div>
                 </div>
