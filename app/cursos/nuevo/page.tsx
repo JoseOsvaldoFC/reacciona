@@ -181,7 +181,7 @@ function GestionCursosPageInner() {
       });
       if (!res.ok) throw new Error("No se pudieron asignar los estudiantes");
       toast.success("Estudiantes asignados correctamente");
-      router.push("/?token=" + token);
+      router.push("/admin");
     } catch (err: any) {
       toast.error(err.message || "Error al asignar estudiantes");
     } finally {
