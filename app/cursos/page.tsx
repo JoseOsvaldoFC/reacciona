@@ -369,13 +369,23 @@ const openModulesAddModal = async (clase: Clase | null) => {
                       </td>
                       <td className="px-2 sm:px-4 py-2 text-center">
                         <div className="flex gap-2 justify-center">
-                          <button
-                            onClick={() => openModulosModal(clase)}
-                            className="text-xs sm:text-sm text-teal-600 hover:underline whitespace-nowrap"
-                            aria-label={`Ver ${clase.modulos?.length ?? 0} módulos`}
-                          >
-                            {clase.modulos?.length ?? 0}
-                          </button>
+                          {(clase.modulos?.length ?? 0) === 0 ? (
+                            <button
+                              onClick={() => openModulesAddModal(clase)}
+                              className="text-xs sm:text-sm text-red-600 font-bold whitespace-nowrap"
+                              aria-label="0 módulos - Agregar"
+                            >
+                              0 - Agregar Módulos
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => openModulosModal(clase)}
+                              className="text-xs sm:text-sm text-teal-600 hover:underline whitespace-nowrap"
+                              aria-label={`Ver ${clase.modulos?.length ?? 0} módulos`}
+                            >
+                              {clase.modulos?.length ?? 0}
+                            </button>
+                          )}
                         </div>
                       </td>
                       <td className="px-2 sm:px-4 py-2 text-center">
