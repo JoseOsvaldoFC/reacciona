@@ -100,7 +100,8 @@ const openModulesAddModal = async (clase: Clase | null) => {
     if (!token) return
     setModulesLoading(true)
     try {
-      const res = await fetch("http://localhost:8080/api/modulos", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+      const res = await fetch(`${apiUrl}/api/modulos`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (!res.ok) throw new Error(`Error ${res.status}`)
@@ -127,7 +128,8 @@ const openModulesAddModal = async (clase: Clase | null) => {
     if (selectedModuleIds.length === 0) return closeModulesAddModal()
     setModulesLoading(true)
     try {
-      const res = await fetch(`http://localhost:8080/api/clases/${claseForModules.id}/modulos`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+      const res = await fetch(`${apiUrl}/api/clases/${claseForModules.id}/modulos`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -165,7 +167,8 @@ const openModulesAddModal = async (clase: Clase | null) => {
       setLoading(true)
       setError(null)
       try {
-        const res = await fetch("http://localhost:8080/api/clases", {
+        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+        const res = await fetch(`${apiUrl}/api/clases`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`
@@ -215,7 +218,8 @@ const openModulesAddModal = async (clase: Clase | null) => {
     if (!token) return
     setAvailableLoading(true)
     try {
-      const res = await fetch("http://localhost:8080/api/usuarios/rol/estudiante/clase-empty", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+      const res = await fetch(`${apiUrl}/api/usuarios/rol/estudiante/clase-empty`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (!res.ok) throw new Error(`Error ${res.status}`)
@@ -250,7 +254,8 @@ const openModulesAddModal = async (clase: Clase | null) => {
     setRemoveLoading(true)
     setRemoveError(null)
     try {
-      const res = await fetch(`http://localhost:8080/api/usuarios/${idAlumno}/remove-clase`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+      const res = await fetch(`${apiUrl}/api/usuarios/${idAlumno}/remove-clase`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -279,7 +284,8 @@ const openModulesAddModal = async (clase: Clase | null) => {
     if (selectedStudentIds.length === 0) return closeAddModal()
     setAddLoading(true)
     try {
-      const res = await fetch(`http://localhost:8080/api/usuarios/${claseToAdd.id}/asignar-clase`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+      const res = await fetch(`${apiUrl}/api/usuarios/${claseToAdd.id}/asignar-clase`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

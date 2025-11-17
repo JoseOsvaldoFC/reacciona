@@ -112,7 +112,8 @@ function GestionCursosPageInner() {
     }
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8080/api/clases", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+      const res = await fetch(`${apiUrl}/api/clases`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -144,7 +145,8 @@ function GestionCursosPageInner() {
     }
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:8080/api/clases/${claseCreada.id}/modulos`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+      const res = await fetch(`${apiUrl}/api/clases/${claseCreada.id}/modulos`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -171,7 +173,8 @@ function GestionCursosPageInner() {
     setLoading(true);
     try {
       // Llama al servicio para asignar estudiantes a la clase
-      const res = await fetch(`http://localhost:8080/api/usuarios/${claseCreada.id}/asignar-clase`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+      const res = await fetch(`${apiUrl}/api/usuarios/${claseCreada.id}/asignar-clase`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
