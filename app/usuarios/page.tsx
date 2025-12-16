@@ -49,7 +49,8 @@ function GestionUsuariosPageInner() {
   useEffect(() => {
     if (!token || !user) return;
     setLoading(true);
-    fetch(`http://localhost:8080/api/usuarios/all/${user.idUsuario}`, {
+    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+    fetch(`${apiUrl}/api/usuarios/all/${user.idUsuario}`, {
       headers: { "Authorization": `Bearer ${token}` }
     })
       .then(res => {

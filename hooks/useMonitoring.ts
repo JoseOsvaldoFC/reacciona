@@ -131,7 +131,8 @@ export function useMonitoring(groupId?: number) {
     setError(null);
 
     try {
-      const response = await fetch(`http://localhost:8080/api/monitoring/group/${groupId}/export`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+      const response = await fetch(`${apiUrl}/api/monitoring/group/${groupId}/export`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

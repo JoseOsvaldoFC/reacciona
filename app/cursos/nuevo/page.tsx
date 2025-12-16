@@ -73,7 +73,8 @@ function GestionCursosPageInner() {
   // Paso 1: obtener docentes (solo si es admin)
   useEffect(() => {
     if (!token || !isAuthenticated) return;
-    fetch("http://localhost:8080/api/usuarios/rol/docentes", {
+    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+    fetch(`${apiUrl}/api/usuarios/rol/docentes`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -84,7 +85,8 @@ function GestionCursosPageInner() {
   // Paso 2: obtener módulos
   useEffect(() => {
     if (step !== 2 || !token) return;
-    fetch("http://localhost:8080/api/modulos", {
+    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+    fetch(`${apiUrl}/api/modulos`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -95,7 +97,8 @@ function GestionCursosPageInner() {
   // Paso 3: obtener estudiantes
   useEffect(() => {
     if (step !== 3 || !token) return;
-    fetch("http://localhost:8080/api/usuarios/rol/estudiante/clase-empty", {
+    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+    fetch(`${apiUrl}/api/usuarios/rol/estudiante/clase-empty`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
