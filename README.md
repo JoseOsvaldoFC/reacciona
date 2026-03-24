@@ -2,10 +2,13 @@
 Proyecto Final académico ingeniería en sistemas
 
 
-<pre>```graph TD
-subgraph Client_Layer
-A[Frontend / Postman]
-end
+📐 Arquitectura del Sistema
+
+```mermaid
+graph TD
+    subgraph Client_Layer
+        A[Frontend / Postman]
+    end
 
     subgraph API_Layer
         B[ProductController]
@@ -34,4 +37,3 @@ end
     E --> H
     H --> I
     C -.->|Captura Errores| B
-    ``` </pre>
